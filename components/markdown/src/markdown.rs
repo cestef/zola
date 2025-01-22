@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::markdown::cmark::CowStr;
+use crate::typst::RenderMode;
+use crate::typst::Svgo;
 use errors::bail;
 use libs::gh_emoji::Replacer as EmojiReplacer;
 use libs::once_cell::sync::Lazy;
@@ -434,6 +436,7 @@ pub fn markdown_to_html(
     opts.insert(Options::ENABLE_STRIKETHROUGH);
     opts.insert(Options::ENABLE_TASKLISTS);
     opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+    opts.insert(Options::ENABLE_MATH);
 
     if context.config.markdown.smart_punctuation {
         opts.insert(Options::ENABLE_SMART_PUNCTUATION);
@@ -443,7 +446,8 @@ pub fn markdown_to_html(
     let mut html_shortcodes: Vec<_> = html_shortcodes.into_iter().rev().collect();
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
-
+    let typst = crate::typst::Compiler::new();
+    let svgo = Svgo::default();
     {
         let mut events = Vec::new();
         macro_rules! render_shortcodes {
@@ -683,6 +687,36 @@ pub fn markdown_to_html(
                     } else {
                         event
                     });
+                }
+                Event::InlineMath(ref content) | Event::DisplayMath(ref content) => {
+                    let render_mode = if matches!(event, Event::InlineMath(_)) {
+                        RenderMode::Inline
+                    } else {
+                        RenderMode::Display
+                    };
+                    let rendered = typst.render_math(content, render_mode);
+                    match rendered {
+                        Ok((rendered, align)) => {
+                            let formatted = crate::typst::format_svg(&rendered, align, render_mode);
+                            let minified = svgo.minify(&formatted);
+
+                            if let Ok(minified) = minified {
+                                let diff = formatted.len() - minified.len();
+                                println!(
+                                    "Minified SVG: {} -> {} ({} bytes saved)",
+                                    formatted.len(),
+                                    minified.len(),
+                                    diff
+                                );
+                                events.push(Event::Html(minified.into()));
+                            } else {
+                                error = Some(Error::msg("Failed to minify SVG"));
+                            }
+                        }
+                        Err(e) => {
+                            error = Some(Error::msg(format!("Failed to render  math: {}", e)));
+                        }
+                    }
                 }
                 Event::Html(text) if !has_summary && MORE_DIVIDER_RE.is_match(text.as_ref()) => {
                     has_summary = true;

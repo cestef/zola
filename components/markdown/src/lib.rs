@@ -2,7 +2,7 @@ mod codeblock;
 mod context;
 mod markdown;
 mod shortcode;
-
+mod typst;
 use shortcode::{extract_shortcodes, insert_md_shortcodes};
 
 use errors::Result;

@@ -42,6 +42,7 @@ errors = { path = "components/errors" }
 console = { path = "components/console" }
 utils = { path = "components/utils" }
 libs = { path = "components/libs" }
+typst-assets = { version = "0.12.0", features = ["fonts"] }
 
 
 [dev-dependencies]

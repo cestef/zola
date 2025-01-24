@@ -689,33 +689,44 @@ pub fn markdown_to_html(
                     });
                 }
                 Event::InlineMath(ref content) | Event::DisplayMath(ref content) => {
-                    let render_mode = if matches!(event, Event::InlineMath(_)) {
-                        RenderMode::Inline
-                    } else {
-                        RenderMode::Display
-                    };
-                    let rendered = typst.render_math(content, render_mode);
-                    match rendered {
-                        Ok((rendered, align)) => {
-                            let formatted = crate::typst::format_svg(&rendered, align, render_mode);
-                            let minified = svgo.minify(&formatted);
-
-                            if let Ok(minified) = minified {
-                                let diff = formatted.len() - minified.len();
-                                println!(
-                                    "Minified SVG: {} -> {} ({} bytes saved)",
-                                    formatted.len(),
-                                    minified.len(),
-                                    diff
-                                );
-                                events.push(Event::Html(minified.into()));
+                    match context.config.markdown.math_rendering {
+                        config::MathRendering::Typst => {
+                            let render_mode = if matches!(event, Event::InlineMath(_)) {
+                                RenderMode::Inline
                             } else {
-                                error = Some(Error::msg("Failed to minify SVG"));
+                                RenderMode::Display
+                            };
+                            let rendered = typst.render_math(content, render_mode);
+                            match rendered {
+                                Ok((rendered, align)) => {
+                                    let formatted =
+                                        crate::typst::format_svg(&rendered, align, render_mode);
+                                    if context.config.markdown.math_svgo {
+                                        let minified = svgo.minify(&formatted);
+
+                                        if let Ok(minified) = minified {
+                                            let diff = formatted.len() - minified.len();
+                                            console::info(&format!(
+                                                "Minified SVG: {} -> {} ({} bytes saved)",
+                                                formatted.len(),
+                                                minified.len(),
+                                                diff,
+                                            ));
+                                            events.push(Event::Html(minified.into()));
+                                        } else {
+                                            error = Some(Error::msg("Failed to minify SVG"));
+                                        }
+                                    } else {
+                                        events.push(Event::Html(formatted.into()));
+                                    }
+                                }
+                                Err(e) => {
+                                    error =
+                                        Some(Error::msg(format!("Failed to render  math: {}", e)));
+                                }
                             }
                         }
-                        Err(e) => {
-                            error = Some(Error::msg(format!("Failed to render  math: {}", e)));
-                        }
+                        _ => {}
                     }
                 }
                 Event::Html(text) if !has_summary && MORE_DIVIDER_RE.is_match(text.as_ref()) => {

@@ -22,6 +22,14 @@ pub struct ThemeCss {
     pub filename: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MathRendering {
+    None,
+    Typst,
+    KaTeX,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Markdown {
@@ -55,6 +63,10 @@ pub struct Markdown {
     pub extra_theme_set: Arc<Option<ThemeSet>>,
     /// Add loading="lazy" decoding="async" to img tags. When turned on, the alt text must be plain text. Defaults to false
     pub lazy_async_image: bool,
+    /// Whether to enable math rendering in markdown files
+    pub math_rendering: MathRendering,
+    /// Whether to optimize generated math SVGs with svgo
+    pub math_svgo: bool,
 }
 
 impl Markdown {
@@ -210,6 +222,8 @@ impl Default for Markdown {
             extra_syntax_set: None,
             extra_theme_set: Arc::new(None),
             lazy_async_image: false,
+            math_rendering: MathRendering::None,
+            math_svgo: false,
         }
     }
 }

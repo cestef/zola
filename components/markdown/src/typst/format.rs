@@ -7,8 +7,8 @@ lazy_static! {
 }
 
 const EM_PER_PT: f64 = 11.0;
-const LIGHT_STYLES: &str = include_str!("light.css");
-const DARK_STYLES: &str = include_str!("dark.css");
+const LIGHT_STYLES: &str = include_str!("styles/light.css");
+const DARK_STYLES: &str = include_str!("styles/dark.css");
 
 pub fn format_svg(svg: &str, align: f64, render_mode: RenderMode) -> String {
     let height =

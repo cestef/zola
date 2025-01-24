@@ -1,5 +1,13 @@
-use std::{collections::HashMap, io::Write, path::PathBuf, sync::Mutex};
+use core::hash;
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    io::Write,
+    path::PathBuf,
+    sync::Mutex,
+};
 
+use cache::TypstCache;
 use typst::{
     diag::{eco_format, FileError, FileResult, PackageError, PackageResult},
     foundations::{Bytes, Datetime, Label},
@@ -21,6 +29,7 @@ fn fonts() -> Vec<Font> {
         .collect()
 }
 
+mod cache;
 mod format;
 mod svgo;
 pub use format::*;
@@ -49,7 +58,7 @@ impl File {
         Ok(source.clone())
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderMode {
     Display,
     Inline,
@@ -66,6 +75,7 @@ pub struct Compiler {
 
     pub cache: PathBuf,
     pub files: Mutex<HashMap<FileId, File>>,
+    pub render_cache: TypstCache,
 }
 
 impl Compiler {
@@ -78,6 +88,7 @@ impl Compiler {
             fonts,
             cache: PathBuf::new(),
             files: Mutex::new(HashMap::new()),
+            render_cache: TypstCache::new().unwrap(),
         }
     }
 
@@ -184,14 +195,24 @@ impl Compiler {
         Err(FileError::NotFound(id.vpath().as_rootless_path().into()))
     }
 
-    pub fn render_math(&self, source: &str, mode: RenderMode) -> Result<(String, f64), String> {
+    pub fn render_math(&mut self, source: &str, mode: RenderMode) -> Result<(String, f64), String> {
         let source = match mode {
             RenderMode::Display => display_math_template(source),
             RenderMode::Inline => inline_math_template(source),
             RenderMode::Raw => panic!("raw mode should be handled by render_raw"),
         };
 
-        // println!("{}", source);
+        let key = {
+            let mut hasher = std::hash::DefaultHasher::new();
+            source.hash(&mut hasher);
+            mode.hash(&mut hasher);
+            format!("{:x}", hasher.finish())
+        };
+
+        if let Some(entry) = self.render_cache.get(&key) {
+            return Ok((entry.content, entry.align.unwrap_or(0.0)));
+        }
+
         let world = self.wrap_source(source);
 
         let document = typst::compile(&world);
@@ -217,12 +238,26 @@ impl Compiler {
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
 
+        self.render_cache.insert(key, image.clone(), Some(align)).unwrap();
+
         Ok((image, align))
     }
 
-    pub fn render_raw(&self, source: impl Into<String>) -> Result<String, String> {
+    pub fn render_raw(&mut self, source: impl Into<String>) -> Result<String, String> {
         let source = source.into();
         let source = raw_template(&source);
+        let mode = RenderMode::Raw;
+        let key = {
+            let mut hasher = std::hash::DefaultHasher::new();
+            source.hash(&mut hasher);
+            mode.hash(&mut hasher);
+            format!("{:x}", hasher.finish())
+        };
+
+        if let Some(entry) = self.render_cache.get(&key) {
+            return Ok(entry.content);
+        }
+
         let world = self.wrap_source(source);
 
         let document = typst::compile(&world);
@@ -235,6 +270,8 @@ impl Compiler {
         let document = document.output.map_err(|diags| format!("{:?}", diags))?;
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
+
+        self.render_cache.insert(key, image.clone(), None).unwrap();
 
         Ok(image)
     }

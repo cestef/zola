@@ -23,6 +23,8 @@ tar = "0.4.43"
 ttf-parser = "0.25.1"
 urlencoding = "2.1.3"
 tempfile = "3"
+bincode = "1.3.3"
+serde = { version = "1.0.130", features = ["derive"] }
 
 [dev-dependencies]
 templates = { path = "../templates" }

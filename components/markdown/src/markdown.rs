@@ -450,7 +450,7 @@ pub fn markdown_to_html(
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
 
-    let typst = crate::typst::Compiler::new();
+    let mut typst = crate::typst::Compiler::new();
     let svgo = Svgo::default();
 
     if context.config.markdown.math_svgo {

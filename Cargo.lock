@@ -2781,6 +2781,7 @@ checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 name = "markdown"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "config",
  "console 0.1.0",
  "errors",
@@ -2789,6 +2790,7 @@ dependencies = [
  "libs",
  "pest",
  "pest_derive",
+ "serde",
  "tar",
  "tempfile",
  "templates",

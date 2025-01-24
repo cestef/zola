@@ -77,6 +77,11 @@ strip = true
 # and we don't rely on it for debugging that much.
 debug = 0
 
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
 [package.metadata.winres]
 OriginalFilename = "zola.exe"
 InternalName = "zola"

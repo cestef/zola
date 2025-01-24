@@ -1,10 +1,10 @@
-use lazy_static::lazy_static;
-
 use super::RenderMode;
 
-lazy_static! {
-    static ref HEIGHT_RE: regex::Regex = regex::Regex::new(r#"height="(.*)pt""#).unwrap();
-}
+use libs::once_cell::sync::Lazy;
+use libs::regex;
+
+static HEIGHT_RE: Lazy<regex::Regex> =
+    Lazy::new(|| regex::Regex::new(r#"height="(.*)pt""#).unwrap());
 
 const EM_PER_PT: f64 = 11.0;
 const DEFAULT_LIGHT_STYLES: &str = include_str!("styles/light.css");

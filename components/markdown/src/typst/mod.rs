@@ -103,7 +103,7 @@ impl Compiler {
             package.namespace, package.name, package.version
         );
 
-        let mut response = reqwest::blocking::get(package_url).map_err(|e| {
+        let mut response = libs::reqwest::blocking::get(package_url).map_err(|e| {
             PackageError::NetworkFailed(Some(eco_format!(
                 "Failed to download package {}: {}",
                 package.name,

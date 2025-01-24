@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use super::RenderMode;
 
 use libs::once_cell::sync::Lazy;
 use libs::regex;
+use utils::fs::read_file;
 
 static HEIGHT_RE: Lazy<regex::Regex> =
     Lazy::new(|| regex::Regex::new(r#"height="((?:\d|\.)+)(?:pt)?""#).unwrap());
@@ -20,6 +23,9 @@ pub fn format_svg(
     light_styles: Option<&str>,
     dark_mode: bool,
 ) -> String {
+    let dark_styles = dark_styles.map(|path| read_file(Path::new(path)).ok()).flatten();
+    let light_styles = light_styles.map(|path| read_file(Path::new(path)).ok()).flatten();
+
     let height =
         HEIGHT_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
     let width = WIDTH_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
@@ -40,7 +46,10 @@ pub fn format_svg(
     let mut imgs = vec![(
         svg.replacen(
             ">\n",
-            &format!(">\n<style>{}</style>\n", light_styles.unwrap_or(DEFAULT_LIGHT_STYLES)),
+            &format!(
+                ">\n<style>{}</style>\n",
+                light_styles.unwrap_or(DEFAULT_LIGHT_STYLES.to_string())
+            ),
             1,
         ),
         "light",
@@ -50,7 +59,10 @@ pub fn format_svg(
         imgs.push((
             svg.replacen(
                 ">\n",
-                &format!(">\n<style>{}</style>\n", dark_styles.unwrap_or(DEFAULT_DARK_STYLES)),
+                &format!(
+                    ">\n<style>{}</style>\n",
+                    dark_styles.unwrap_or(DEFAULT_DARK_STYLES.to_string())
+                ),
                 1,
             ),
             "dark",

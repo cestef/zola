@@ -67,6 +67,14 @@ pub struct Markdown {
     pub math_rendering: MathRendering,
     /// Whether to optimize generated math SVGs with svgo
     pub math_svgo: bool,
+    /// Svgo configuration file path
+    pub math_svgo_config: String,
+    /// Whether to enable automatic dark mode switching based on "prefers-color-scheme" for math
+    pub math_dark_mode: bool,
+    /// Injected CSS path for dark mode (only used if math_dark_mode is enabled)
+    pub math_dark_mode_css: String,
+    /// Injected CSS path for light mode
+    pub math_light_mode_css: String,
 }
 
 impl Markdown {
@@ -224,6 +232,10 @@ impl Default for Markdown {
             lazy_async_image: false,
             math_rendering: MathRendering::None,
             math_svgo: false,
+            math_dark_mode: false,
+            math_dark_mode_css: "".to_owned(),
+            math_light_mode_css: "".to_owned(),
+            math_svgo_config: "".to_owned(),
         }
     }
 }

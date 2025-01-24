@@ -199,10 +199,6 @@ impl Compiler {
             return Err(format!("{:?}", warnings));
         }
 
-        let current_font = self.fonts.first().ok_or("no fonts")?;
-
-        // println!("current_font: {:?}", current_font);
-
         let document = document.output.map_err(|diags| format!("{:?}", diags))?;
         let query = document.introspector.query_label(Label::construct("label".into()));
         let align = query
@@ -215,7 +211,7 @@ impl Compiler {
                 }
             })
             .unwrap_or(0.0);
-        // println!("align: {}", align);
+
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
 

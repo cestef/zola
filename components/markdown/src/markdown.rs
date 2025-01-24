@@ -446,8 +446,25 @@ pub fn markdown_to_html(
     let mut html_shortcodes: Vec<_> = html_shortcodes.into_iter().rev().collect();
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
+
     let typst = crate::typst::Compiler::new();
     let svgo = Svgo::default();
+    let math_dark_mode_css: Option<&str> = if context.config.markdown.math_dark_mode {
+        if context.config.markdown.math_dark_mode_css.is_empty() {
+            None
+        } else {
+            Some(context.config.markdown.math_dark_mode_css.as_str())
+        }
+    } else {
+        None
+    };
+    let math_light_mode_css: Option<&str> =
+        if context.config.markdown.math_light_mode_css.is_empty() {
+            None
+        } else {
+            Some(context.config.markdown.math_light_mode_css.as_str())
+        };
+
     {
         let mut events = Vec::new();
         macro_rules! render_shortcodes {
@@ -697,24 +714,44 @@ pub fn markdown_to_html(
                                 RenderMode::Display
                             };
                             let rendered = typst.render_math(content, render_mode);
+
                             match rendered {
                                 Ok((rendered, align)) => {
-                                    let formatted =
-                                        crate::typst::format_svg(&rendered, align, render_mode);
+                                    let formatted = crate::typst::format_svg(
+                                        &rendered,
+                                        align,
+                                        render_mode,
+                                        math_dark_mode_css,
+                                        math_light_mode_css,
+                                        context.config.markdown.math_dark_mode,
+                                    );
                                     if context.config.markdown.math_svgo {
-                                        let minified = svgo.minify(&formatted);
+                                        let minified = svgo.minify(
+                                            &formatted,
+                                            if context.config.markdown.math_svgo_config.is_empty() {
+                                                None
+                                            } else {
+                                                Some(&context.config.markdown.math_svgo_config)
+                                            },
+                                        );
 
-                                        if let Ok(minified) = minified {
-                                            let diff = formatted.len() - minified.len();
-                                            console::info(&format!(
-                                                "Minified SVG: {} -> {} ({} bytes saved)",
-                                                formatted.len(),
-                                                minified.len(),
-                                                diff,
-                                            ));
-                                            events.push(Event::Html(minified.into()));
-                                        } else {
-                                            error = Some(Error::msg("Failed to minify SVG"));
+                                        match minified {
+                                            Ok(minified) => {
+                                                let diff = formatted.len() - minified.len();
+                                                console::info(&format!(
+                                                    "Minified SVG: {} -> {} ({} bytes saved)",
+                                                    formatted.len(),
+                                                    minified.len(),
+                                                    diff,
+                                                ));
+                                                events.push(Event::Html(minified.into()));
+                                            }
+                                            Err(e) => {
+                                                error = Some(Error::msg(format!(
+                                                    "Failed to minify SVG: {}",
+                                                    e
+                                                )));
+                                            }
                                         }
                                     } else {
                                         events.push(Event::Html(formatted.into()));

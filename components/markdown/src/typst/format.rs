@@ -7,20 +7,43 @@ lazy_static! {
 }
 
 const EM_PER_PT: f64 = 11.0;
-const LIGHT_STYLES: &str = include_str!("styles/light.css");
-const DARK_STYLES: &str = include_str!("styles/dark.css");
+const DEFAULT_LIGHT_STYLES: &str = include_str!("styles/light.css");
+const DEFAULT_DARK_STYLES: &str = include_str!("styles/dark.css");
 
-pub fn format_svg(svg: &str, align: f64, render_mode: RenderMode) -> String {
+pub fn format_svg(
+    svg: &str,
+    align: f64,
+    render_mode: RenderMode,
+    dark_styles: Option<&str>,
+    light_styles: Option<&str>,
+    dark_mode: bool,
+) -> String {
     let height =
         HEIGHT_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
 
     let shift = height - align;
     let shift_em = shift / EM_PER_PT;
 
-    // Inject the styles into the SVG
-    let light_svg = svg.replacen(">\n", &format!(">\n<style>{}</style>\n", LIGHT_STYLES), 1);
-    let dark_svg = svg.replacen(">\n", &format!(">\n<style>{}</style>\n", DARK_STYLES), 1);
-    let imgs = vec![(light_svg, "light"), (dark_svg, "dark")];
+    let mut imgs = vec![(
+        svg.replacen(
+            ">\n",
+            &format!(">\n<style>{}</style>\n", light_styles.unwrap_or(DEFAULT_LIGHT_STYLES)),
+            1,
+        ),
+        "light",
+    )];
+
+    if dark_mode {
+        imgs.push((
+            svg.replacen(
+                ">\n",
+                &format!(">\n<style>{}</style>\n", dark_styles.unwrap_or(DEFAULT_DARK_STYLES)),
+                1,
+            ),
+            "dark",
+        ));
+    }
+
     let mut out = String::new();
 
     for (svg, theme) in imgs {

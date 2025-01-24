@@ -26,13 +26,15 @@ impl Svgo {
         Ok(())
     }
 
-    pub fn minify(&self, svg: &str) -> Result<String, String> {
-        let mut child = Command::new(&self.bin_path)
-            .arg("-i")
-            .arg("-")
-            .arg("-o")
-            .arg("-")
-            .arg("--multipass")
+    pub fn minify(&self, svg: &str, config: Option<&str>) -> Result<String, String> {
+        let mut cmd = Command::new(&self.bin_path);
+        let mut child = cmd.arg("-i").arg("-").arg("-o").arg("-").arg("--multipass");
+
+        if let Some(config) = config {
+            child = child.arg("--config").arg(config);
+        }
+
+        let mut child = child
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()

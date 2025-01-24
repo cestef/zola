@@ -4,7 +4,9 @@ use libs::once_cell::sync::Lazy;
 use libs::regex;
 
 static HEIGHT_RE: Lazy<regex::Regex> =
-    Lazy::new(|| regex::Regex::new(r#"height="(.*)pt""#).unwrap());
+    Lazy::new(|| regex::Regex::new(r#"height="((?:\d|\.)+)(?:pt)?""#).unwrap());
+static WIDTH_RE: Lazy<regex::Regex> =
+    Lazy::new(|| regex::Regex::new(r#"width="((?:\d|\.)+)(?:pt)?""#).unwrap());
 
 const EM_PER_PT: f64 = 11.0;
 const DEFAULT_LIGHT_STYLES: &str = include_str!("styles/light.css");
@@ -20,7 +22,7 @@ pub fn format_svg(
 ) -> String {
     let height =
         HEIGHT_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
-
+    let width = WIDTH_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
     let mut svg = svg.to_string();
 
     if render_mode == RenderMode::Raw {
@@ -60,7 +62,7 @@ pub fn format_svg(
     for (svg, theme) in imgs {
         let url_encoded = urlencoding::encode(&svg);
         out.push_str(&format!(
-            "<img src=\"data:image/svg+xml,{url_encoded}\" class=\"{} typst-doc typst-{theme}\" style=\"{} height:{}pt\" loading=\"lazy\" decoding=\"async\" alt=\"\" />",
+            "<img src=\"data:image/svg+xml,{url_encoded}\" class=\"{} typst-doc typst-{theme}\" style=\"{} width: {}em\" loading=\"lazy\" decoding=\"async\" alt=\"\" />",
             match render_mode {
                 RenderMode::Display | RenderMode::Raw => "typst-display",
                 RenderMode::Inline => "typst-inline",
@@ -70,7 +72,7 @@ pub fn format_svg(
             } else {
                 String::new()
             },
-            height,
+            width / EM_PER_PT
         ));
     }
 

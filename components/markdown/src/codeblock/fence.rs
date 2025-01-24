@@ -25,6 +25,7 @@ pub struct FenceSettings<'a> {
     pub highlight_lines: Vec<RangeInclusive<usize>>,
     pub hide_lines: Vec<RangeInclusive<usize>>,
     pub enable_copy: bool,
+    pub include: Option<&'a str>,
 }
 
 impl<'a> FenceSettings<'a> {
@@ -36,6 +37,7 @@ impl<'a> FenceSettings<'a> {
             highlight_lines: Vec::new(),
             hide_lines: Vec::new(),
             enable_copy: false,
+            include: None,
         };
 
         for token in FenceIter::new(fence_info) {
@@ -46,6 +48,7 @@ impl<'a> FenceSettings<'a> {
                 FenceToken::HighlightLines(lines) => me.highlight_lines.extend(lines),
                 FenceToken::HideLines(lines) => me.hide_lines.extend(lines),
                 FenceToken::EnableCopy => me.enable_copy = true,
+                FenceToken::Include(file) => me.include = Some(file),
             }
         }
 
@@ -61,6 +64,7 @@ enum FenceToken<'a> {
     HighlightLines(Vec<RangeInclusive<usize>>),
     HideLines(Vec<RangeInclusive<usize>>),
     EnableCopy,
+    Include(&'a str),
 }
 
 struct FenceIter<'a> {
@@ -108,6 +112,11 @@ impl<'a> Iterator for FenceIter<'a> {
                     return Some(FenceToken::HideLines(ranges));
                 }
                 "copy" => return Some(FenceToken::EnableCopy),
+                "include" => {
+                    if let Some(file) = tok_split.next() {
+                        return Some(FenceToken::Include(file));
+                    }
+                }
                 lang => {
                     return Some(FenceToken::Language(lang));
                 }

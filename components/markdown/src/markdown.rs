@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::path::PathBuf;
 
 use crate::markdown::cmark::CowStr;
 use crate::typst::RenderMode;
@@ -409,6 +410,7 @@ pub fn markdown_to_html(
         .get("page")
         .or_else(|| context.tera_context.get("section"))
         .map(|x| x.as_object().unwrap().get("relative_path").unwrap().as_str().unwrap());
+
     // the rendered html
     let mut html = String::with_capacity(content.len());
     let mut summary = None;
@@ -595,6 +597,7 @@ pub fn markdown_to_html(
                     let (block, begin) = CodeBlock::new(&fence, context.config, path);
                     code_block = Some(block);
                     code_block_language = fence.language.map(|s| s.to_string());
+
                     match code_block_language.as_deref() {
                         Some("typ") => {}
                         _ => {
@@ -604,9 +607,20 @@ pub fn markdown_to_html(
                 }
                 Event::End(TagEnd::CodeBlock { .. }) => {
                     if let Some(ref mut code_block) = code_block {
+                        let inner = code_block
+                            .include(
+                                context
+                                    .parent_absolute
+                                    .map(|e| {
+                                        path.map(|p| e.join(PathBuf::from(p).parent().unwrap()))
+                                    })
+                                    .flatten()
+                                    .as_ref(),
+                            )
+                            .unwrap_or(accumulated_block.clone());
                         match code_block_language.as_deref() {
                             Some("typ") => {
-                                let rendered = typst.render_raw(&accumulated_block);
+                                let rendered = typst.render_raw(&inner);
 
                                 match rendered {
                                     Ok(rendered) => {
@@ -666,7 +680,7 @@ pub fn markdown_to_html(
                                 accumulated_block.clear();
                             }
                             _ => {
-                                let html = code_block.highlight(&accumulated_block);
+                                let html = code_block.highlight(&inner);
                                 events.push(Event::Html(html.into()));
                                 accumulated_block.clear();
                                 events.push(Event::Html("</code></pre>\n".into()));

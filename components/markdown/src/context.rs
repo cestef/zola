@@ -1,11 +1,14 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use config::Config;
 use libs::tera::{Context, Tera};
 use utils::templates::ShortcodeDefinition;
 use utils::types::InsertAnchor;
+
+use crate::typst::TypstCache;
 
 /// All the information from the zola site that is needed to render HTML from markdown
 #[derive(Debug)]
@@ -20,6 +23,24 @@ pub struct RenderContext<'a> {
     pub insert_anchor: InsertAnchor,
     pub lang: &'a str,
     pub shortcode_definitions: Cow<'a, HashMap<String, ShortcodeDefinition>>,
+    pub caches: Arc<Caches>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Caches {
+    pub typst: Arc<TypstCache>,
+}
+
+impl Caches {
+    pub fn new(cache_path: &Path) -> Self {
+        Self { typst: Arc::new(TypstCache::new(cache_path, "typst").unwrap()) }
+    }
+}
+
+impl Default for Caches {
+    fn default() -> Self {
+        Self { typst: Arc::new(TypstCache::new(Path::new(".cache"), "typst").unwrap()) }
+    }
 }
 
 impl<'a> RenderContext<'a> {
@@ -30,6 +51,7 @@ impl<'a> RenderContext<'a> {
         current_page_permalink: &'a str,
         permalinks: &'a HashMap<String, String>,
         insert_anchor: InsertAnchor,
+        caches: Arc<Caches>,
     ) -> RenderContext<'a> {
         let mut tera_context = Context::new();
         tera_context.insert("config", &config.serialize(lang));
@@ -46,6 +68,7 @@ impl<'a> RenderContext<'a> {
             lang,
             shortcode_definitions: Cow::Owned(HashMap::new()),
             parent_absolute: None,
+            caches,
         }
     }
 
@@ -80,6 +103,7 @@ impl<'a> RenderContext<'a> {
             lang: &config.default_language,
             shortcode_definitions: Cow::Owned(HashMap::new()),
             parent_absolute: None,
+            caches: Arc::new(Caches::default()),
         }
     }
 }

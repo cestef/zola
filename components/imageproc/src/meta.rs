@@ -1,5 +1,5 @@
 use errors::{anyhow, Context, Result};
-use libs::image::io::Reader as ImgReader;
+use libs::image::ImageReader as ImgReader;
 use libs::image::{ImageFormat, ImageResult};
 use libs::svg_metadata::Metadata as SvgMetadata;
 use serde::Serialize;

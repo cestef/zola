@@ -19,6 +19,7 @@ use config::{get_config, Config, IndexFormat};
 use content::{Library, Page, Paginator, Section, Taxonomy};
 use errors::{anyhow, bail, Result};
 use libs::relative_path::RelativePathBuf;
+use markdown::context::Caches;
 use std::time::Instant;
 use templates::{load_tera, render_redirect_template};
 use utils::fs::{
@@ -61,6 +62,8 @@ pub struct Site {
     pub permalinks: HashMap<String, String>,
     /// Contains all pages and sections of the site
     pub library: Arc<RwLock<Library>>,
+    /// The cache for rendered math content
+    pub caches: Arc<Caches>,
     /// Whether to load draft pages
     include_drafts: bool,
     build_mode: BuildMode,
@@ -108,6 +111,7 @@ impl Site {
             library: Arc::new(RwLock::new(Library::default())),
             build_mode: BuildMode::Disk,
             shortcode_definitions,
+            caches: Arc::new(Caches::default()),
         };
 
         Ok(site)
@@ -433,6 +437,7 @@ impl Site {
         }
 
         let mut library = self.library.write().expect("Get lock for render_markdown");
+
         library
             .pages
             .values_mut()
@@ -446,6 +451,7 @@ impl Site {
                     config,
                     insert_anchor,
                     &self.shortcode_definitions,
+                    self.caches.clone(),
                 )
             })
             .collect::<Result<()>>()?;
@@ -456,7 +462,13 @@ impl Site {
             .collect::<Vec<_>>()
             .par_iter_mut()
             .map(|section| {
-                section.render_markdown(permalinks, tera, config, &self.shortcode_definitions)
+                section.render_markdown(
+                    permalinks,
+                    tera,
+                    config,
+                    &self.shortcode_definitions,
+                    self.caches.clone(),
+                )
             })
             .collect::<Result<()>>()?;
 
@@ -486,6 +498,7 @@ impl Site {
                 &self.config,
                 insert_anchor,
                 &self.shortcode_definitions,
+                self.caches.clone(),
             )?;
         }
 
@@ -518,6 +531,7 @@ impl Site {
                 &self.tera,
                 &self.config,
                 &self.shortcode_definitions,
+                self.caches.clone(),
             )?;
         }
         let mut library = self.library.write().expect("Get lock for add_section");

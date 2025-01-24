@@ -1,4 +1,5 @@
-use core::hash;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
@@ -6,8 +7,8 @@ use std::{
     path::PathBuf,
     sync::Mutex,
 };
+use twox_hash::XxHash64;
 
-use cache::TypstCache;
 use typst::{
     diag::{eco_format, FileError, FileResult, PackageError, PackageResult},
     foundations::{Bytes, Datetime, Label},
@@ -29,11 +30,13 @@ fn fonts() -> Vec<Font> {
         .collect()
 }
 
-mod cache;
 mod format;
 mod svgo;
+
 pub use format::*;
 pub use svgo::*;
+
+use crate::cache::GenericCache;
 
 /// Fake file
 ///
@@ -65,6 +68,20 @@ pub enum RenderMode {
     Raw,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Minify<'a> {
+    Yes(Option<&'a str>),
+    No,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TypstCacheEntry {
+    content: String,
+    align: Option<f64>,
+}
+
+pub type TypstCache = GenericCache<String, TypstCacheEntry>;
+
 /// Compiler
 ///
 /// This is the compiler which has all the necessary fields except the source
@@ -73,22 +90,22 @@ pub struct Compiler {
     pub book: LazyHash<FontBook>,
     pub fonts: Vec<Font>,
 
-    pub cache: PathBuf,
+    pub packages_cache: PathBuf,
     pub files: Mutex<HashMap<FileId, File>>,
-    pub render_cache: TypstCache,
+    pub render_cache: Arc<TypstCache>,
 }
 
 impl Compiler {
-    pub fn new() -> Self {
+    pub fn new(cache: Arc<TypstCache>) -> Self {
         let fonts = fonts();
 
         Self {
             library: LazyHash::new(Library::default()),
             book: LazyHash::new(FontBook::from_fonts(&fonts)),
             fonts,
-            cache: PathBuf::new(),
+            packages_cache: PathBuf::from(".cache/packages"),
             files: Mutex::new(HashMap::new()),
-            render_cache: TypstCache::new().unwrap(),
+            render_cache: cache,
         }
     }
 
@@ -103,7 +120,7 @@ impl Compiler {
     /// Get the package directory or download if not exists
     fn package(&self, package: &PackageSpec) -> PackageResult<PathBuf> {
         let package_subdir = format!("{}/{}/{}", package.namespace, package.name, package.version);
-        let path = self.cache.join(package_subdir);
+        let path = self.packages_cache.join(package_subdir);
 
         if path.exists() {
             return Ok(path);
@@ -195,7 +212,12 @@ impl Compiler {
         Err(FileError::NotFound(id.vpath().as_rootless_path().into()))
     }
 
-    pub fn render_math(&mut self, source: &str, mode: RenderMode) -> Result<(String, f64), String> {
+    pub fn render_math(
+        &mut self,
+        source: &str,
+        mode: RenderMode,
+        minify: Minify,
+    ) -> Result<(String, f64), String> {
         let source = match mode {
             RenderMode::Display => display_math_template(source),
             RenderMode::Inline => inline_math_template(source),
@@ -203,9 +225,10 @@ impl Compiler {
         };
 
         let key = {
-            let mut hasher = std::hash::DefaultHasher::new();
+            let mut hasher = XxHash64::with_seed(42);
             source.hash(&mut hasher);
             mode.hash(&mut hasher);
+            minify.hash(&mut hasher);
             format!("{:x}", hasher.finish())
         };
 
@@ -238,19 +261,35 @@ impl Compiler {
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
 
-        self.render_cache.insert(key, image.clone(), Some(align)).unwrap();
+        let minified = match minify {
+            Minify::Yes(config) => {
+                let svgo = Svgo::default();
+                svgo.minify(&image, config.as_deref())
+                    .map_err(|e| format!("Failed to minify svg: {}", e))?
+            }
+            Minify::No => image,
+        };
 
-        Ok((image, align))
+        self.render_cache
+            .insert(key, TypstCacheEntry { content: minified.clone(), align: Some(align) });
+
+        Ok((minified, align))
     }
 
-    pub fn render_raw(&mut self, source: impl Into<String>) -> Result<String, String> {
+    pub fn render_raw(
+        &mut self,
+        source: impl Into<String>,
+        minify: Minify,
+    ) -> Result<String, String> {
         let source = source.into();
         let source = raw_template(&source);
         let mode = RenderMode::Raw;
+
         let key = {
-            let mut hasher = std::hash::DefaultHasher::new();
+            let mut hasher = XxHash64::with_seed(42);
             source.hash(&mut hasher);
             mode.hash(&mut hasher);
+            minify.hash(&mut hasher);
             format!("{:x}", hasher.finish())
         };
 
@@ -271,9 +310,18 @@ impl Compiler {
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
 
-        self.render_cache.insert(key, image.clone(), None).unwrap();
+        let minified = match minify {
+            Minify::Yes(config) => {
+                let svgo = Svgo::default();
+                svgo.minify(&image, config.as_deref())
+                    .map_err(|e| format!("Failed to minify svg: {}", e))?
+            }
+            Minify::No => image,
+        };
 
-        Ok(image)
+        self.render_cache.insert(key, TypstCacheEntry { content: minified.clone(), align: None });
+
+        Ok(minified)
     }
 }
 

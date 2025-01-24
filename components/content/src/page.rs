@@ -1,6 +1,7 @@
 /// A page, can be a blog post or a basic page
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use libs::once_cell::sync::Lazy;
 use libs::regex::Regex;
@@ -8,6 +9,8 @@ use libs::tera::{Context as TeraContext, Tera};
 
 use config::Config;
 use errors::{Context, Result};
+use markdown::context::Caches;
+
 use markdown::{render_content, RenderContext};
 use utils::slugs::slugify_paths;
 use utils::table_of_contents::Heading;
@@ -212,6 +215,7 @@ impl Page {
         config: &Config,
         anchor_insert: InsertAnchor,
         shortcode_definitions: &HashMap<String, ShortcodeDefinition>,
+        caches: Arc<Caches>,
     ) -> Result<()> {
         let mut context = RenderContext::new(
             tera,
@@ -220,6 +224,7 @@ impl Page {
             &self.permalink,
             permalinks,
             anchor_insert,
+            caches,
         );
         context.set_shortcode_definitions(shortcode_definitions);
         context.set_current_page_path(&self.file.relative);
@@ -302,9 +307,11 @@ mod tests {
     use std::fs::{create_dir, File};
     use std::io::Write;
     use std::path::{Path, PathBuf};
+    use std::sync::Arc;
 
     use libs::globset::{Glob, GlobSetBuilder};
     use libs::tera::Tera;
+    use markdown::context::Caches;
     use tempfile::tempdir;
 
     use crate::Page;
@@ -331,6 +338,7 @@ Hello world"#;
             &config,
             InsertAnchor::None,
             &HashMap::new(),
+            Arc::new(Caches::default()),
         )
         .unwrap();
 
@@ -359,6 +367,7 @@ Hello world"#;
             &config,
             InsertAnchor::None,
             &HashMap::new(),
+            Arc::new(Caches::default()),
         )
         .unwrap();
 
@@ -529,6 +538,7 @@ Hello world
             &config,
             InsertAnchor::None,
             &HashMap::new(),
+            Arc::new(Caches::default()),
         )
         .unwrap();
         assert_eq!(page.summary, Some("<p>Hello world</p>\n".to_string()));
@@ -563,6 +573,7 @@ And here's another. [^3]
             &config,
             InsertAnchor::None,
             &HashMap::new(),
+            Arc::new(Caches::default()),
         )
         .unwrap();
         assert_eq!(

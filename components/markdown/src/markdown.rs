@@ -3,6 +3,7 @@ use std::fmt::Write;
 use std::path::PathBuf;
 
 use crate::markdown::cmark::CowStr;
+use crate::typst::Minify;
 use crate::typst::RenderMode;
 use crate::typst::Svgo;
 use errors::bail;
@@ -450,11 +451,10 @@ pub fn markdown_to_html(
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
 
-    let mut typst = crate::typst::Compiler::new();
-    let svgo = Svgo::default();
+    let mut typst = crate::typst::Compiler::new(context.caches.typst.clone());
 
     if context.config.markdown.math_svgo {
-        svgo.check_bin().map_err(|e| {
+        Svgo::default().check_bin().map_err(|e| {
             Error::msg(format!(
                 "Error checking svgo installation, make sure it's installed and in your PATH: {}",
                 e
@@ -620,54 +620,39 @@ pub fn markdown_to_html(
                             .unwrap_or(accumulated_block.clone());
                         match code_block_language.as_deref() {
                             Some("typ") => {
-                                let rendered = typst.render_raw(&inner);
+                                let rendered = typst.render_raw(
+                                    &inner,
+                                    if context.config.markdown.math_svgo {
+                                        Minify::Yes(
+                                            if context.config.markdown.math_svgo_config.is_empty() {
+                                                None
+                                            } else {
+                                                Some(
+                                                    context
+                                                        .config
+                                                        .markdown
+                                                        .math_svgo_config
+                                                        .as_str(),
+                                                )
+                                            },
+                                        )
+                                    } else {
+                                        Minify::No
+                                    },
+                                );
 
                                 match rendered {
-                                    Ok(rendered) => {
+                                    Ok(svg) => {
+                                        // Format after minification
                                         let formatted = crate::typst::format_svg(
-                                            &rendered,
+                                            &svg,
                                             None,
                                             RenderMode::Raw,
                                             math_dark_mode_css,
                                             math_light_mode_css,
                                             context.config.markdown.math_dark_mode,
                                         );
-                                        if context.config.markdown.math_svgo {
-                                            let minified = svgo.minify(
-                                                &formatted,
-                                                if context
-                                                    .config
-                                                    .markdown
-                                                    .math_svgo_config
-                                                    .is_empty()
-                                                {
-                                                    None
-                                                } else {
-                                                    Some(&context.config.markdown.math_svgo_config)
-                                                },
-                                            );
-
-                                            match minified {
-                                                Ok(minified) => {
-                                                    let diff = formatted.len() - minified.len();
-                                                    console::info(&format!(
-                                                        "Minified SVG: {} -> {} ({} bytes saved)",
-                                                        formatted.len(),
-                                                        minified.len(),
-                                                        diff,
-                                                    ));
-                                                    events.push(Event::Html(minified.into()));
-                                                }
-                                                Err(e) => {
-                                                    error = Some(Error::msg(format!(
-                                                        "Failed to minify SVG: {}",
-                                                        e
-                                                    )));
-                                                }
-                                            }
-                                        } else {
-                                            events.push(Event::Html(formatted.into()));
-                                        }
+                                        events.push(Event::Html(formatted.into()));
                                     }
                                     Err(e) => {
                                         error = Some(Error::msg(format!(
@@ -811,53 +796,40 @@ pub fn markdown_to_html(
                             } else {
                                 RenderMode::Display
                             };
-                            let rendered = typst.render_math(content, render_mode);
+
+                            let rendered = typst.render_math(
+                                content,
+                                render_mode,
+                                if context.config.markdown.math_svgo {
+                                    Minify::Yes(
+                                        if context.config.markdown.math_svgo_config.is_empty() {
+                                            None
+                                        } else {
+                                            Some(context.config.markdown.math_svgo_config.as_str())
+                                        },
+                                    )
+                                } else {
+                                    Minify::No
+                                },
+                            );
 
                             match rendered {
-                                Ok((rendered, align)) => {
+                                Ok((svg, align)) => {
+                                    // Format after minification
                                     let formatted = crate::typst::format_svg(
-                                        &rendered,
+                                        &svg,
                                         Some(align),
                                         render_mode,
                                         math_dark_mode_css,
                                         math_light_mode_css,
                                         context.config.markdown.math_dark_mode,
                                     );
-                                    if context.config.markdown.math_svgo {
-                                        let minified = svgo.minify(
-                                            &formatted,
-                                            if context.config.markdown.math_svgo_config.is_empty() {
-                                                None
-                                            } else {
-                                                Some(&context.config.markdown.math_svgo_config)
-                                            },
-                                        );
 
-                                        match minified {
-                                            Ok(minified) => {
-                                                let diff = formatted.len() - minified.len();
-                                                console::info(&format!(
-                                                    "Minified SVG: {} -> {} ({} bytes saved)",
-                                                    formatted.len(),
-                                                    minified.len(),
-                                                    diff,
-                                                ));
-                                                events.push(Event::Html(minified.into()));
-                                            }
-                                            Err(e) => {
-                                                error = Some(Error::msg(format!(
-                                                    "Failed to minify SVG: {}",
-                                                    e
-                                                )));
-                                            }
-                                        }
-                                    } else {
-                                        events.push(Event::Html(formatted.into()));
-                                    }
+                                    events.push(Event::Html(formatted.into()));
                                 }
                                 Err(e) => {
                                     error =
-                                        Some(Error::msg(format!("Failed to render  math: {}", e)));
+                                        Some(Error::msg(format!("Failed to render math: {}", e)));
                                 }
                             }
                         }
@@ -977,6 +949,8 @@ pub fn markdown_to_html(
             let summary_html = FOOTNOTES_RE.replace_all(&html, "").into_owned();
             summary = Some(summary_html)
         }
+
+        typst.render_cache.write()?;
 
         // emit everything after summary
         cmark::html::push_html(&mut html, events);

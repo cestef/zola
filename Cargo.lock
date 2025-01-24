@@ -1025,6 +1025,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+ "serde",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2511,7 +2526,7 @@ dependencies = [
  "const-str",
  "cssparser",
  "cssparser-color",
- "dashmap",
+ "dashmap 5.5.3",
  "data-encoding",
  "getrandom 0.2.15",
  "itertools 0.10.5",
@@ -2784,6 +2799,7 @@ dependencies = [
  "bincode",
  "config",
  "console 0.1.0",
+ "dashmap 6.1.0",
  "errors",
  "flate2",
  "insta",
@@ -2796,6 +2812,7 @@ dependencies = [
  "templates",
  "time",
  "ttf-parser 0.25.1",
+ "twox-hash",
  "typst",
  "typst-assets",
  "typst-svg",
@@ -4518,6 +4535,7 @@ dependencies = [
  "imageproc",
  "libs",
  "link_checker",
+ "markdown",
  "path-slash",
  "search",
  "serde",
@@ -5182,6 +5200,15 @@ dependencies = [
  "once_cell",
  "serde",
  "syntect",
+]
+
+[[package]]
+name = "twox-hash"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7b17f197b3050ba473acf9181f7b1d3b66d1cf7356c6cc57886662276e65908"
+dependencies = [
+ "rand 0.8.5",
 ]
 
 [[package]]

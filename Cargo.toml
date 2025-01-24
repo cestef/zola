@@ -23,8 +23,17 @@ name = "zola"
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 # Below is for the serve cmd
-hyper = { version = "0.14.1", default-features = false, features = ["runtime", "server", "http2", "http1"] }
-tokio = { version = "1.0.1", default-features = false, features = ["rt", "fs", "time"] }
+hyper = { version = "0.14.1", default-features = false, features = [
+    "runtime",
+    "server",
+    "http2",
+    "http1",
+] }
+tokio = { version = "1.0.1", default-features = false, features = [
+    "rt",
+    "fs",
+    "time",
+] }
 time = { version = "0.3", features = ["formatting", "macros", "local-offset"] }
 notify-debouncer-full = "0.3"
 ws = "0.9"
@@ -60,7 +69,7 @@ members = ["components/*"]
 
 [profile.release]
 lto = true
-codegen-units = 1
+codegen-units = 16
 strip = true
 
 [profile.dev]

@@ -40,6 +40,9 @@
 [submodule "sublime/syntaxes/Sublime-GenericConfig"]
 	path = sublime/syntaxes/extra/Sublime-GenericConfig
 	url = https://github.com/skozlovf/Sublime-GenericConfig.git
+[submodule "sublime/syntaxes/sublime-jinja2"]
+	path = sublime/syntaxes/extra/sublime-jinja2
+	url = https://github.com/Martin819/sublime-jinja2.git
 [submodule "sublime/syntaxes/Julia-sublime"]
 	path = sublime/syntaxes/extra/Julia-sublime
 	url = https://github.com/JuliaEditorSupport/Julia-sublime.git

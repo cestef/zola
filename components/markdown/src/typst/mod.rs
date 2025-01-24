@@ -53,6 +53,7 @@ impl File {
 pub enum RenderMode {
     Display,
     Inline,
+    Raw,
 }
 
 /// Compiler
@@ -187,6 +188,7 @@ impl Compiler {
         let source = match mode {
             RenderMode::Display => display_math_template(source),
             RenderMode::Inline => inline_math_template(source),
+            RenderMode::Raw => panic!("raw mode should be handled by render_raw"),
         };
 
         // println!("{}", source);
@@ -326,7 +328,7 @@ fn raw_template(code: &str) -> String {
     format!(
         r#"
 #set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(13pt)
+#set text(16pt)
 {TYPST_HELPER_FUNCTIONS}
 {code}
 "#,

@@ -8,6 +8,7 @@ use libs::tera::{Context, Tera};
 use utils::templates::ShortcodeDefinition;
 use utils::types::InsertAnchor;
 
+use crate::pikchr::PikchrCache;
 use crate::typst::TypstCache;
 
 /// All the information from the zola site that is needed to render HTML from markdown
@@ -29,17 +30,21 @@ pub struct RenderContext<'a> {
 #[derive(Debug, Clone)]
 pub struct Caches {
     pub typst: Arc<TypstCache>,
+    pub pikchr: Arc<PikchrCache>,
 }
 
 impl Caches {
     pub fn new(cache_path: &Path) -> Self {
-        Self { typst: Arc::new(TypstCache::new(cache_path, "typst").unwrap()) }
+        Self {
+            typst: Arc::new(TypstCache::new(cache_path, "typst").unwrap()),
+            pikchr: Arc::new(PikchrCache::new(cache_path, "pikchr").unwrap()),
+        }
     }
 }
 
 impl Default for Caches {
     fn default() -> Self {
-        Self { typst: Arc::new(TypstCache::new(Path::new(".cache"), "typst").unwrap()) }
+        Self::new(Path::new(".cache"))
     }
 }
 

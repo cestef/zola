@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::RenderMode;
+use super::TypstRenderMode;
 
 use libs::once_cell::sync::Lazy;
 use libs::regex;
@@ -18,7 +18,7 @@ const DEFAULT_DARK_STYLES: &str = include_str!("styles/dark.css");
 pub fn format_svg(
     svg: &str,
     align: Option<f64>,
-    render_mode: RenderMode,
+    render_mode: TypstRenderMode,
     dark_styles: Option<&str>,
     light_styles: Option<&str>,
     dark_mode: bool,
@@ -28,10 +28,11 @@ pub fn format_svg(
 
     let height =
         HEIGHT_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
+
     let width = WIDTH_RE.captures(svg).and_then(|caps| caps[1].parse::<f64>().ok()).unwrap_or(0.0);
     let mut svg = svg.to_string();
 
-    if render_mode == RenderMode::Raw {
+    if render_mode == TypstRenderMode::Raw {
         // Add 10pt to the height to account for the padding
         svg = svg.replacen(
             &format!("height=\"{}pt\"", height),
@@ -45,9 +46,9 @@ pub fn format_svg(
 
     let mut imgs = vec![(
         svg.replacen(
-            ">\n",
+            ">",
             &format!(
-                ">\n<style>{}</style>\n",
+                "><style>{}</style>",
                 light_styles.unwrap_or(DEFAULT_LIGHT_STYLES.to_string())
             ),
             1,
@@ -58,9 +59,9 @@ pub fn format_svg(
     if dark_mode {
         imgs.push((
             svg.replacen(
-                ">\n",
+                ">",
                 &format!(
-                    ">\n<style>{}</style>\n",
+                    "><style>{}</style>",
                     dark_styles.unwrap_or(DEFAULT_DARK_STYLES.to_string())
                 ),
                 1,
@@ -76,8 +77,8 @@ pub fn format_svg(
         out.push_str(&format!(
             "<img src=\"data:image/svg+xml,{url_encoded}\" class=\"{} typst-doc typst-{theme}\" style=\"{} width: {}em\" loading=\"lazy\" decoding=\"async\" alt=\"\" />",
             match render_mode {
-                RenderMode::Display | RenderMode::Raw => "typst-display",
-                RenderMode::Inline => "typst-inline",
+                TypstRenderMode::Display | TypstRenderMode::Raw => "typst-display",
+                TypstRenderMode::Inline => "typst-inline",
             },
             if let Some(shift_em) = shift_em {
                 format!("vertical-align: -{}em;", shift_em)

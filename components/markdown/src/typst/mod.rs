@@ -41,13 +41,13 @@ use crate::cache::GenericCache;
 /// Fake file
 ///
 /// This is a fake file which wrap the real content takes from the md math block
-pub struct File {
+pub struct TypstFile {
     bytes: Bytes,
 
     source: Option<Source>,
 }
 
-impl File {
+impl TypstFile {
     fn source(&mut self, id: FileId) -> FileResult<Source> {
         let source = match &self.source {
             Some(source) => source,
@@ -62,14 +62,14 @@ impl File {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RenderMode {
+pub enum TypstRenderMode {
     Display,
     Inline,
     Raw,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Minify<'a> {
+pub enum TypstMinify<'a> {
     Yes(Option<&'a str>),
     No,
 }
@@ -85,17 +85,17 @@ pub type TypstCache = GenericCache<String, TypstCacheEntry>;
 /// Compiler
 ///
 /// This is the compiler which has all the necessary fields except the source
-pub struct Compiler {
+pub struct TypstCompiler {
     pub library: LazyHash<Library>,
     pub book: LazyHash<FontBook>,
     pub fonts: Vec<Font>,
 
     pub packages_cache: PathBuf,
-    pub files: Mutex<HashMap<FileId, File>>,
+    pub files: Mutex<HashMap<FileId, TypstFile>>,
     pub render_cache: Arc<TypstCache>,
 }
 
-impl Compiler {
+impl TypstCompiler {
     pub fn new(cache: Arc<TypstCache>) -> Self {
         let fonts = fonts();
 
@@ -187,7 +187,7 @@ impl Compiler {
     }
 
     // Weird pattern because mapping a MutexGuard is not stable yet.
-    fn file<T>(&self, id: FileId, map: impl FnOnce(&mut File) -> T) -> FileResult<T> {
+    fn file<T>(&self, id: FileId, map: impl FnOnce(&mut TypstFile) -> T) -> FileResult<T> {
         let mut files = self.files.lock().unwrap();
         if let Some(entry) = files.get_mut(&id) {
             return Ok(map(entry));
@@ -204,7 +204,7 @@ impl Compiler {
                 let contents =
                     std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
                 let entry =
-                    files.entry(id).or_insert(File { bytes: contents.into(), source: None });
+                    files.entry(id).or_insert(TypstFile { bytes: contents.into(), source: None });
                 return Ok(map(entry));
             }
         }
@@ -213,15 +213,15 @@ impl Compiler {
     }
 
     pub fn render_math(
-        &mut self,
+        &self,
         source: &str,
-        mode: RenderMode,
-        minify: Minify,
+        mode: TypstRenderMode,
+        minify: TypstMinify,
     ) -> Result<(String, f64), String> {
         let source = match mode {
-            RenderMode::Display => display_math_template(source),
-            RenderMode::Inline => inline_math_template(source),
-            RenderMode::Raw => panic!("raw mode should be handled by render_raw"),
+            TypstRenderMode::Display => display_math_template(source),
+            TypstRenderMode::Inline => inline_math_template(source),
+            TypstRenderMode::Raw => panic!("raw mode should be handled by render_raw"),
         };
 
         let key = {
@@ -262,12 +262,12 @@ impl Compiler {
         let image = typst_svg::svg(page);
 
         let minified = match minify {
-            Minify::Yes(config) => {
+            TypstMinify::Yes(config) => {
                 let svgo = Svgo::default();
                 svgo.minify(&image, config.as_deref())
                     .map_err(|e| format!("Failed to minify svg: {}", e))?
             }
-            Minify::No => image,
+            TypstMinify::No => image,
         };
 
         self.render_cache
@@ -277,13 +277,13 @@ impl Compiler {
     }
 
     pub fn render_raw(
-        &mut self,
+        &self,
         source: impl Into<String>,
-        minify: Minify,
+        minify: TypstMinify,
     ) -> Result<String, String> {
         let source = source.into();
         let source = raw_template(&source);
-        let mode = RenderMode::Raw;
+        let mode = TypstRenderMode::Raw;
 
         let key = {
             let mut hasher = XxHash64::with_seed(42);
@@ -311,12 +311,12 @@ impl Compiler {
         let image = typst_svg::svg(page);
 
         let minified = match minify {
-            Minify::Yes(config) => {
+            TypstMinify::Yes(config) => {
                 let svgo = Svgo::default();
                 svgo.minify(&image, config.as_deref())
                     .map_err(|e| format!("Failed to minify svg: {}", e))?
             }
-            Minify::No => image,
+            TypstMinify::No => image,
         };
 
         self.render_cache.insert(key, TypstCacheEntry { content: minified.clone(), align: None });
@@ -329,7 +329,7 @@ impl Compiler {
 ///
 /// This is a wrapper for the source which provides ref to the compiler
 pub struct WrapSource<'a> {
-    compiler: &'a Compiler,
+    compiler: &'a TypstCompiler,
     source: Source,
     time: time::OffsetDateTime,
 }

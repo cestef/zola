@@ -75,6 +75,8 @@ pub struct Markdown {
     pub math_dark_mode_css: String,
     /// Injected CSS path for light mode
     pub math_light_mode_css: String,
+    /// Whether to enable automatic dark mode switching based on "prefers-color-scheme" for pikchr
+    pub pikchr_dark_mode: bool,
 }
 
 impl Markdown {
@@ -236,6 +238,7 @@ impl Default for Markdown {
             math_dark_mode_css: "".to_owned(),
             math_light_mode_css: "".to_owned(),
             math_svgo_config: "".to_owned(),
+            pikchr_dark_mode: false,
         }
     }
 }

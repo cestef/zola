@@ -3,9 +3,9 @@ use std::fmt::Write;
 use std::path::PathBuf;
 
 use crate::markdown::cmark::CowStr;
-use crate::typst::Minify;
-use crate::typst::RenderMode;
 use crate::typst::Svgo;
+use crate::typst::TypstMinify;
+use crate::typst::TypstRenderMode;
 use errors::bail;
 use libs::gh_emoji::Replacer as EmojiReplacer;
 use libs::once_cell::sync::Lazy;
@@ -451,7 +451,8 @@ pub fn markdown_to_html(
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
 
-    let mut typst = crate::typst::Compiler::new(context.caches.typst.clone());
+    let typst = crate::typst::TypstCompiler::new(context.caches.typst.clone());
+    let pikchr = crate::pikchr::PikchrCompiler::new(context.caches.pikchr.clone());
 
     if context.config.markdown.math_svgo {
         Svgo::default().check_bin().map_err(|e| {
@@ -594,12 +595,16 @@ pub fn markdown_to_html(
                         _ => FenceSettings::new(""),
                     };
 
-                    let (block, begin) = CodeBlock::new(&fence, context.config, path);
+                    let (block, begin) = CodeBlock::new(
+                        &fence,
+                        context.config,
+                        // path
+                    );
                     code_block = Some(block);
                     code_block_language = fence.language.map(|s| s.to_string());
 
                     match code_block_language.as_deref() {
-                        Some("typ") => {}
+                        Some("typ" | "pikchr") => {}
                         _ => {
                             events.push(Event::Html(begin.into()));
                         }
@@ -623,7 +628,7 @@ pub fn markdown_to_html(
                                 let rendered = typst.render_raw(
                                     &inner,
                                     if context.config.markdown.math_svgo {
-                                        Minify::Yes(
+                                        TypstMinify::Yes(
                                             if context.config.markdown.math_svgo_config.is_empty() {
                                                 None
                                             } else {
@@ -637,7 +642,7 @@ pub fn markdown_to_html(
                                             },
                                         )
                                     } else {
-                                        Minify::No
+                                        TypstMinify::No
                                     },
                                 );
 
@@ -647,7 +652,7 @@ pub fn markdown_to_html(
                                         let formatted = crate::typst::format_svg(
                                             &svg,
                                             None,
-                                            RenderMode::Raw,
+                                            TypstRenderMode::Raw,
                                             math_dark_mode_css,
                                             math_light_mode_css,
                                             context.config.markdown.math_dark_mode,
@@ -657,6 +662,25 @@ pub fn markdown_to_html(
                                     Err(e) => {
                                         error = Some(Error::msg(format!(
                                             "Failed to render math: {}",
+                                            e
+                                        )));
+                                    }
+                                }
+
+                                accumulated_block.clear();
+                            }
+
+                            Some("pikchr") => {
+                                let rendered =
+                                    pikchr.render(&inner, context.config.markdown.pikchr_dark_mode);
+
+                                match rendered {
+                                    Ok(svg) => {
+                                        events.push(Event::Html(svg.into()));
+                                    }
+                                    Err(e) => {
+                                        error = Some(Error::msg(format!(
+                                            "Failed to render pikchr: {}",
                                             e
                                         )));
                                     }
@@ -792,16 +816,16 @@ pub fn markdown_to_html(
                     match context.config.markdown.math_rendering {
                         config::MathRendering::Typst => {
                             let render_mode = if matches!(event, Event::InlineMath(_)) {
-                                RenderMode::Inline
+                                TypstRenderMode::Inline
                             } else {
-                                RenderMode::Display
+                                TypstRenderMode::Display
                             };
 
                             let rendered = typst.render_math(
                                 content,
                                 render_mode,
                                 if context.config.markdown.math_svgo {
-                                    Minify::Yes(
+                                    TypstMinify::Yes(
                                         if context.config.markdown.math_svgo_config.is_empty() {
                                             None
                                         } else {
@@ -809,7 +833,7 @@ pub fn markdown_to_html(
                                         },
                                     )
                                 } else {
-                                    Minify::No
+                                    TypstMinify::No
                                 },
                             );
 
@@ -951,6 +975,7 @@ pub fn markdown_to_html(
         }
 
         typst.render_cache.write()?;
+        pikchr.cache.write()?;
 
         // emit everything after summary
         cmark::html::push_html(&mut html, events);

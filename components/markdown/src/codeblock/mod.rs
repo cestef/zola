@@ -8,7 +8,7 @@ use libs::syntect::util::LinesWithEndings;
 use utils::fs::read_file;
 
 use crate::codeblock::highlight::SyntaxHighlighter;
-use config::highlighting::{resolve_syntax_and_theme, HighlightSource};
+use config::highlighting::resolve_syntax_and_theme;
 use config::Config;
 pub(crate) use fence::FenceSettings;
 
@@ -77,7 +77,7 @@ impl<'config> CodeBlock<'config> {
         fence: &FenceSettings<'fence_info>,
         config: &'config Config,
         // path to the current file if there is one, to point where the error is
-        path: Option<&'config str>,
+        // path: Option<&'config str>,
     ) -> (Self, String) {
         let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);
         // if syntax_and_theme.source == HighlightSource::NotFound && config.markdown.highlight_code {

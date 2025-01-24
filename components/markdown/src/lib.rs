@@ -2,6 +2,7 @@ pub mod cache;
 pub mod codeblock;
 pub mod context;
 pub mod markdown;
+pub mod pikchr;
 pub mod shortcode;
 pub mod typst;
 

@@ -625,8 +625,9 @@ pub fn markdown_to_html(
                             .unwrap_or(accumulated_block.clone());
                         match code_block_language.as_deref() {
                             Some("typ") => {
-                                let rendered = typst.render_raw(
+                                let rendered = typst.render(
                                     &inner,
+                                    TypstRenderMode::Raw,
                                     if context.config.markdown.math_svgo {
                                         TypstMinify::Yes(
                                             if context.config.markdown.math_svgo_config.is_empty() {
@@ -647,7 +648,7 @@ pub fn markdown_to_html(
                                 );
 
                                 match rendered {
-                                    Ok(svg) => {
+                                    Ok((svg, _)) => {
                                         // Format after minification
                                         let formatted = crate::typst::format_svg(
                                             &svg,
@@ -821,7 +822,7 @@ pub fn markdown_to_html(
                                 TypstRenderMode::Display
                             };
 
-                            let rendered = typst.render_math(
+                            let rendered = typst.render(
                                 content,
                                 render_mode,
                                 if context.config.markdown.math_svgo {
@@ -842,7 +843,7 @@ pub fn markdown_to_html(
                                     // Format after minification
                                     let formatted = crate::typst::format_svg(
                                         &svg,
-                                        Some(align),
+                                        align,
                                         render_mode,
                                         math_dark_mode_css,
                                         math_light_mode_css,

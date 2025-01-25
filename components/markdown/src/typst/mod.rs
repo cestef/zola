@@ -213,18 +213,20 @@ impl TypstCompiler {
         Err(FileError::NotFound(id.vpath().as_rootless_path().into()))
     }
 
-    pub fn render_math(
+    pub fn render(
         &self,
         source: &str,
         mode: TypstRenderMode,
         minify: TypstMinify,
-    ) -> Result<(String, f64), String> {
+    ) -> Result<(String, Option<f64>), String> {
+        // Prepare source based on mode
         let source = match mode {
-            TypstRenderMode::Display => templates::display_math(source),
-            TypstRenderMode::Inline => templates::inline_math(source),
-            TypstRenderMode::Raw => panic!("raw mode should be handled by render_raw"),
+            TypstRenderMode::Display => templates::display_math(&source),
+            TypstRenderMode::Inline => templates::inline_math(&source),
+            TypstRenderMode::Raw => templates::raw(&source),
         };
 
+        // Generate cache key
         let key = {
             let mut hasher = XxHash64::with_seed(42);
             source.hash(&mut hasher);
@@ -233,12 +235,13 @@ impl TypstCompiler {
             format!("{:x}", hasher.finish())
         };
 
+        // Check cache first
         if let Some(entry) = self.render_cache.get(&key) {
-            return Ok((entry.content, entry.align.unwrap_or(0.0)));
+            return Ok((entry.content.clone(), entry.align));
         }
 
+        // Compile the source
         let world = self.wrap_source(source);
-
         let document = typst::compile(&world);
         let warnings = document.warnings;
 
@@ -247,21 +250,10 @@ impl TypstCompiler {
         }
 
         let document = document.output.map_err(|diags| format!("{:?}", diags))?;
-        let query = document.introspector.query_label(Label::construct("label".into()));
-        let align = query
-            .map(|it| {
-                let field = it.clone().field_by_name("value").unwrap();
-                if let typst::foundations::Value::Length(value) = field {
-                    value.abs.to_pt()
-                } else {
-                    0.0
-                }
-            })
-            .unwrap_or(0.0);
-
         let page = document.pages.first().ok_or("no pages")?;
         let image = typst_svg::svg(page);
 
+        // Minify if requested
         let minified = match minify {
             TypstMinify::Yes(config) => {
                 let svgo = Svgo::default();
@@ -271,58 +263,32 @@ impl TypstCompiler {
             TypstMinify::No => image,
         };
 
-        self.render_cache
-            .insert(key, TypstCacheEntry { content: minified.clone(), align: Some(align) });
+        // Get alignment (for math modes)
+        let align = if mode != TypstRenderMode::Raw {
+            let query = document.introspector.query_label(Label::construct("label".into()));
+            Some(
+                query
+                    .map(|it| {
+                        let field = it.clone().field_by_name("value").unwrap();
+                        if let typst::foundations::Value::Length(value) = field {
+                            value.abs.to_pt()
+                        } else {
+                            0.0
+                        }
+                    })
+                    .unwrap_or(0.0),
+            )
+        } else {
+            None
+        };
+
+        // Cache and return
+        self.render_cache.insert(
+            key,
+            TypstCacheEntry { content: minified.clone(), align: align.map(Some).unwrap_or(None) },
+        );
 
         Ok((minified, align))
-    }
-
-    pub fn render_raw(
-        &self,
-        source: impl Into<String>,
-        minify: TypstMinify,
-    ) -> Result<String, String> {
-        let source = source.into();
-        let source = templates::raw(&source);
-        let mode = TypstRenderMode::Raw;
-
-        let key = {
-            let mut hasher = XxHash64::with_seed(42);
-            source.hash(&mut hasher);
-            mode.hash(&mut hasher);
-            minify.hash(&mut hasher);
-            format!("{:x}", hasher.finish())
-        };
-
-        if let Some(entry) = self.render_cache.get(&key) {
-            return Ok(entry.content);
-        }
-
-        let world = self.wrap_source(source);
-
-        let document = typst::compile(&world);
-        let warnings = document.warnings;
-
-        if !warnings.is_empty() {
-            return Err(format!("{:?}", warnings));
-        }
-
-        let document = document.output.map_err(|diags| format!("{:?}", diags))?;
-        let page = document.pages.first().ok_or("no pages")?;
-        let image = typst_svg::svg(page);
-
-        let minified = match minify {
-            TypstMinify::Yes(config) => {
-                let svgo = Svgo::default();
-                svgo.minify(&image, config.as_deref())
-                    .map_err(|e| format!("Failed to minify svg: {}", e))?
-            }
-            TypstMinify::No => image,
-        };
-
-        self.render_cache.insert(key, TypstCacheEntry { content: minified.clone(), align: None });
-
-        Ok(minified)
     }
 }
 

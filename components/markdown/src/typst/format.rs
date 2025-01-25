@@ -12,8 +12,8 @@ static WIDTH_RE: Lazy<regex::Regex> =
     Lazy::new(|| regex::Regex::new(r#"width="((?:\d|\.)+)(?:pt)?""#).unwrap());
 
 const EM_PER_PT: f64 = 11.0;
-const DEFAULT_LIGHT_STYLES: &str = include_str!("styles/light.css");
-const DEFAULT_DARK_STYLES: &str = include_str!("styles/dark.css");
+const DEFAULT_LIGHT_STYLES: &str = include_str!("../../assets/typst/styles/light.css");
+const DEFAULT_DARK_STYLES: &str = include_str!("../../assets/typst/styles/dark.css");
 
 pub fn format_svg(
     svg: &str,

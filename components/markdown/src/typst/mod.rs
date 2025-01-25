@@ -32,6 +32,7 @@ fn fonts() -> Vec<Font> {
 
 mod format;
 mod svgo;
+mod templates;
 
 pub use format::*;
 pub use svgo::*;
@@ -219,8 +220,8 @@ impl TypstCompiler {
         minify: TypstMinify,
     ) -> Result<(String, f64), String> {
         let source = match mode {
-            TypstRenderMode::Display => display_math_template(source),
-            TypstRenderMode::Inline => inline_math_template(source),
+            TypstRenderMode::Display => templates::display_math(source),
+            TypstRenderMode::Inline => templates::inline_math(source),
             TypstRenderMode::Raw => panic!("raw mode should be handled by render_raw"),
         };
 
@@ -282,7 +283,7 @@ impl TypstCompiler {
         minify: TypstMinify,
     ) -> Result<String, String> {
         let source = source.into();
-        let source = raw_template(&source);
+        let source = templates::raw(&source);
         let mode = TypstRenderMode::Raw;
 
         let key = {
@@ -366,56 +367,4 @@ impl World for WrapSource<'_> {
     fn today(&self, _offset: Option<i64>) -> Option<Datetime> {
         Some(Datetime::Date(self.time.date()))
     }
-}
-
-const TYPST_HELPER_FUNCTIONS: &str = include_str!("./helpers.typ");
-
-fn display_math_template(code: &str) -> String {
-    format!(
-        r#"
-#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(14pt)
-{TYPST_HELPER_FUNCTIONS}
-$ {code} $
-"#,
-    )
-}
-
-fn inline_math_template(code: &str) -> String {
-    format!(
-        r#"
-#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(13pt)
-#let s = state("t", (:))
-{TYPST_HELPER_FUNCTIONS}
-
-#let pin(t) = context {{
-    let computed = measure(
-        line(length: here().position().y)
-    )
-    s.update(it => it.insert(t, computed.width) + it)
-    }}
-
-#show math.equation: it => {{
-    box(it, inset: (top: 0.5em, bottom: 0.5em))
-    }}
-
-$pin("l1"){code}$
-
-#context [
-    #metadata(s.final().at("l1")) <label>
-]
-"#,
-    )
-}
-
-fn raw_template(code: &str) -> String {
-    format!(
-        r#"
-#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(16pt)
-{TYPST_HELPER_FUNCTIONS}
-{code}
-"#,
-    )
 }

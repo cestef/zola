@@ -441,6 +441,7 @@ pub fn markdown_to_html(
     opts.insert(Options::ENABLE_TASKLISTS);
     opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
     opts.insert(Options::ENABLE_MATH);
+    opts.insert(Options::ENABLE_GFM);
 
     if context.config.markdown.smart_punctuation {
         opts.insert(Options::ENABLE_SMART_PUNCTUATION);
@@ -540,6 +541,7 @@ pub fn markdown_to_html(
         }
 
         let mut accumulated_block = String::new();
+
         for (event, mut range) in Parser::new_ext(content, opts).into_offset_iter() {
             match event {
                 Event::Text(text) => {
@@ -860,6 +862,22 @@ pub fn markdown_to_html(
                         }
                         e => unimplemented!("Unsupported math rendering: {:?}", e),
                     }
+                }
+
+                Event::Start(Tag::BlockQuote(Some(kind))) => {
+                    const CALLOUT_START: &str = include_str!("../assets/callouts/alert.start.tmpl");
+                    let class = match kind {
+                        cmark::BlockQuoteKind::Note => "note",
+                        cmark::BlockQuoteKind::Important => "important",
+                        cmark::BlockQuoteKind::Caution => "caution",
+                        cmark::BlockQuoteKind::Tip => "tip",
+                        cmark::BlockQuoteKind::Warning => "warning",
+                    };
+
+                    events.push(Event::Html(CALLOUT_START.replace("{{kind}}", &class).into()));
+                }
+                Event::End(TagEnd::BlockQuote(Some(_))) => {
+                    events.push(Event::Html("</div>".into()));
                 }
                 Event::Html(text) if !has_summary && MORE_DIVIDER_RE.is_match(text.as_ref()) => {
                     has_summary = true;

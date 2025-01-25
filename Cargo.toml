@@ -1,13 +1,13 @@
 [package]
 name = "zola"
-version = "0.19.5"
+version = "0.19.6"
 authors = ["Vincent Prouillet <hello@vincentprouillet.com>"]
 edition = "2021"
 license = "MIT"
 readme = "README.md"
 description = "A fast static site generator with everything built-in"
 homepage = "https://www.getzola.org"
-repository = "https://github.com/getzola/zola"
+repository = "https://github.com/cestef/zola"
 keywords = ["static", "site", "generator", "blog"]
 
 include = ["src/**/*", "LICENSE", "README.md"]

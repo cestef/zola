@@ -22,9 +22,10 @@ pub struct ThemeCss {
     pub filename: String,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum MathRendering {
+    #[default]
     None,
     Typst,
     KaTeX,
@@ -64,14 +65,14 @@ pub struct Markdown {
     /// Add loading="lazy" decoding="async" to img tags. When turned on, the alt text must be plain text. Defaults to false
     pub lazy_async_image: bool,
     /// Whether to enable math rendering in markdown files
-    pub math_rendering: MathRendering,
+    pub math: MathRendering,
     /// Whether to optimize generated math SVGs with svgo
     pub math_svgo: bool,
     /// Svgo configuration file path
-    pub math_svgo_config: String,
+    pub math_svgo_config: Option<String>,
     /// Whether to enable automatic dark mode switching based on "prefers-color-scheme" for math
     /// Injected CSS path for light mode
-    pub math_css: String,
+    pub math_css: Option<String>,
     /// Whether to enable automatic dark mode switching based on "prefers-color-scheme" for pikchr
     pub pikchr_dark_mode: bool,
 }
@@ -229,10 +230,10 @@ impl Default for Markdown {
             extra_syntax_set: None,
             extra_theme_set: Arc::new(None),
             lazy_async_image: false,
-            math_rendering: MathRendering::None,
+            math: MathRendering::default(),
             math_svgo: false,
-            math_css: "".to_owned(),
-            math_svgo_config: "".to_owned(),
+            math_css: None,
+            math_svgo_config: None,
             pikchr_dark_mode: false,
         }
     }

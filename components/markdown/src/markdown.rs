@@ -464,12 +464,6 @@ pub fn markdown_to_html(
         })?;
     }
 
-    let math_css = if context.config.markdown.math_css.is_empty() {
-        None
-    } else {
-        Some(context.config.markdown.math_css.as_str())
-    };
-
     {
         let mut events = Vec::new();
         macro_rules! render_shortcodes {
@@ -619,17 +613,7 @@ pub fn markdown_to_html(
                                     TypstRenderMode::Raw,
                                     if context.config.markdown.math_svgo {
                                         TypstMinify::Yes(
-                                            if context.config.markdown.math_svgo_config.is_empty() {
-                                                None
-                                            } else {
-                                                Some(
-                                                    context
-                                                        .config
-                                                        .markdown
-                                                        .math_svgo_config
-                                                        .as_str(),
-                                                )
-                                            },
+                                            context.config.markdown.math_svgo_config.as_deref(),
                                         )
                                     } else {
                                         TypstMinify::No
@@ -643,7 +627,7 @@ pub fn markdown_to_html(
                                             &svg,
                                             None,
                                             TypstRenderMode::Raw,
-                                            math_css,
+                                            context.config.markdown.math_css.as_deref(),
                                         );
                                         events.push(Event::Html(formatted.into()));
                                     }
@@ -801,7 +785,7 @@ pub fn markdown_to_html(
                 }
 
                 Event::InlineMath(ref content) | Event::DisplayMath(ref content) => {
-                    match context.config.markdown.math_rendering {
+                    match context.config.markdown.math {
                         config::MathRendering::Typst => {
                             let render_mode = if matches!(event, Event::InlineMath(_)) {
                                 TypstRenderMode::Inline
@@ -814,11 +798,7 @@ pub fn markdown_to_html(
                                 render_mode,
                                 if context.config.markdown.math_svgo {
                                     TypstMinify::Yes(
-                                        if context.config.markdown.math_svgo_config.is_empty() {
-                                            None
-                                        } else {
-                                            Some(context.config.markdown.math_svgo_config.as_str())
-                                        },
+                                        context.config.markdown.math_svgo_config.as_deref(),
                                     )
                                 } else {
                                     TypstMinify::No
@@ -832,7 +812,7 @@ pub fn markdown_to_html(
                                         &svg,
                                         align,
                                         render_mode,
-                                        math_css,
+                                        context.config.markdown.math_css.as_deref(),
                                     );
 
                                     events.push(Event::Html(formatted.into()));
@@ -843,7 +823,7 @@ pub fn markdown_to_html(
                                 }
                             }
                         }
-                        e => unimplemented!("Unsupported math rendering: {:?}", e),
+                        e => todo!("Unsupported math rendering: {:?}", e),
                     }
                 }
 

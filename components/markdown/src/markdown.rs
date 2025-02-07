@@ -605,11 +605,8 @@ pub fn markdown_to_html(
                     code_block = Some(block);
                     code_block_language = fence.language.map(|s| s.to_string());
 
-                    match code_block_language.as_deref() {
-                        Some("typ" | "pikchr") => {}
-                        _ => {
-                            events.push(Event::Html(begin.into()));
-                        }
+                    if !matches!(code_block_language.as_deref(), Some("typ" | "pikchr")) {
+                        events.push(Event::Html(begin.into()));
                     }
                 }
                 Event::End(TagEnd::CodeBlock { .. }) => {

@@ -464,21 +464,11 @@ pub fn markdown_to_html(
         })?;
     }
 
-    let math_dark_mode_css: Option<&str> = if context.config.markdown.math_dark_mode {
-        if context.config.markdown.math_dark_mode_css.is_empty() {
-            None
-        } else {
-            Some(context.config.markdown.math_dark_mode_css.as_str())
-        }
-    } else {
+    let math_css = if context.config.markdown.math_css.is_empty() {
         None
+    } else {
+        Some(context.config.markdown.math_css.as_str())
     };
-    let math_light_mode_css: Option<&str> =
-        if context.config.markdown.math_light_mode_css.is_empty() {
-            None
-        } else {
-            Some(context.config.markdown.math_light_mode_css.as_str())
-        };
 
     {
         let mut events = Vec::new();
@@ -653,9 +643,7 @@ pub fn markdown_to_html(
                                             &svg,
                                             None,
                                             TypstRenderMode::Raw,
-                                            math_dark_mode_css,
-                                            math_light_mode_css,
-                                            context.config.markdown.math_dark_mode,
+                                            math_css,
                                         );
                                         events.push(Event::Html(formatted.into()));
                                     }
@@ -844,9 +832,7 @@ pub fn markdown_to_html(
                                         &svg,
                                         align,
                                         render_mode,
-                                        math_dark_mode_css,
-                                        math_light_mode_css,
-                                        context.config.markdown.math_dark_mode,
+                                        math_css,
                                     );
 
                                     events.push(Event::Html(formatted.into()));

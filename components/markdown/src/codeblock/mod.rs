@@ -80,7 +80,7 @@ impl<'config> CodeBlock<'config> {
     pub fn new<'fence_info>(
         fence: &FenceSettings<'fence_info>,
         config: &'config Config,
-        // path to the current file if there is one, to point where the error is
+        // // path to the current file if there is one, to point where the error is
         // path: Option<&'config str>,
     ) -> (Self, String) {
         let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);

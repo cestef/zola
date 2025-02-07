@@ -23,6 +23,15 @@ pub struct ThemeCss {
     pub filename: String,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum MathRendering {
+    #[default]
+    None,
+    Typst,
+    KaTeX,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Markdown {
@@ -65,6 +74,15 @@ pub struct Markdown {
     /// Whether to insert a link for each header like the ones you can see in this site if you hover one
     /// The default template can be overridden by creating a `anchor-link.html` in the `templates` directory
     pub insert_anchor_links: InsertAnchor,
+    /// Whether to enable math rendering in markdown files
+    pub math: MathRendering,
+    /// Whether to optimize generated math SVGs with svgo
+    pub math_svgo: bool,
+    /// Svgo configuration file path
+    pub math_svgo_config: Option<String>,
+    /// Whether to enable automatic dark mode switching based on "prefers-color-scheme" for math
+    /// Injected CSS path for light mode
+    pub math_css: Option<String>,
 }
 
 impl Markdown {
@@ -240,6 +258,10 @@ impl Default for Markdown {
             extra_theme_set: Arc::new(None),
             lazy_async_image: false,
             insert_anchor_links: InsertAnchor::None,
+            math: MathRendering::default(),
+            math_svgo: false,
+            math_css: None,
+            math_svgo_config: None,
         }
     }
 }

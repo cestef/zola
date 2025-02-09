@@ -793,6 +793,7 @@ pub fn markdown_to_html(
                                 }
                             }
                         }
+                        config::MathRendering::None => {}
                         e => todo!("Unsupported math rendering: {:?}", e),
                     }
                 }

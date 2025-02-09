@@ -22,6 +22,8 @@ external_links_no_referrer = true
 #  { theme = "base16-ocean-light", filename = "syntax-theme-light.css" },
 #]
 
+math = "typst"
+
 [link_checker]
 internal_level = "warn"
 

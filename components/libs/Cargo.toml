@@ -36,7 +36,12 @@ nom-bibtex = "0.5"
 num-format = "0.4"
 once_cell = "1"
 percent-encoding = "2"
-pulldown-cmark = { version = "0.12.2", default-features = false, features = [
+# pulldown-cmark = { version = "0.12.2", default-features = false, features = [
+#     "html",
+#     "simd",
+
+# ] }
+pulldown-cmark = { git = "https://github.com/cestef/pulldown-cmark", branch = "admonition-handler-fix", default-features = false, features = [
     "html",
     "simd",
 ] }

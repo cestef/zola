@@ -615,7 +615,9 @@ pub fn markdown_to_html(
                         }
                     };
                     code_block = Some(block);
-                    events.push(Event::Html(begin.into()));
+                    if !matches!(fence.language, Some("typ")) {
+                        events.push(Event::Html(begin.into()));
+                    }
                     code_block_language = fence.language.map(|s| s.to_string());
                 }
                 Event::End(TagEnd::CodeBlock { .. }) => {
@@ -656,7 +658,8 @@ pub fn markdown_to_html(
                             }
 
                             _ => {
-                                let html = code_block.highlight(&inner);
+                                let mut html = code_block.highlight(&inner);
+                                html.push_str("</code></pre>\n");
                                 events.push(Event::Html(html.into()));
                             }
                         }
@@ -665,7 +668,6 @@ pub fn markdown_to_html(
                     // reset highlight and close the code block
                     code_block = None;
                     accumulated_block.clear();
-                    events.push(Event::Html("</code></pre>\n".into()));
                     code_block_language = None;
                 }
                 Event::Start(Tag::Image { link_type, dest_url, title, id }) => {

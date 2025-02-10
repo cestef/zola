@@ -708,7 +708,7 @@ pub fn markdown_to_html(
                 }
                 Event::Start(Tag::BlockQuote(Some(kind))) => {
                     const CALLOUT_START: &str = include_str!("../assets/callouts/start.tmpl");
-                    let class = kind.as_str().to_lowercase();
+                    let class = kind.as_str();
 
                     events.push(Event::Html(CALLOUT_START.replace("{{kind}}", &class).into()));
                 }

@@ -3,11 +3,14 @@
 title = "zola-hacker"
 description = "Hacker is a theme for Zola"
 template = "theme.html"
-date = 2024-08-12T05:57:54Z
+date = 2024-12-30T22:36:39-05:00
+
+[taxonomies]
+theme-tags = []
 
 [extra]
-created = 2024-08-12T05:57:54Z
-updated = 2024-08-12T05:57:54Z
+created = 2024-12-30T22:36:39-05:00
+updated = 2024-12-30T22:36:39-05:00
 repository = "https://github.com/en9inerd/zola-hacker"
 homepage = "https://github.com/en9inerd/zola-hacker"
 minimum_version = "0.19.1"

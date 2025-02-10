@@ -3,11 +3,14 @@
 title = "particle"
 description = "Particle theme for Zola"
 template = "theme.html"
-date = 2024-08-12T05:57:54Z
+date = 2023-05-11T00:52:07+02:00
+
+[taxonomies]
+theme-tags = []
 
 [extra]
-created = 2024-08-12T05:57:54Z
-updated = 2024-08-12T05:57:54Z
+created = 2023-05-11T00:52:07+02:00
+updated = 2023-05-11T00:52:07+02:00
 repository = "https://github.com/svavs/particle-zola.git"
 homepage = "https://github.com/svavs/particle-zola"
 minimum_version = "0.16.1"
@@ -38,7 +41,7 @@ The Theme features:
 
 ## Basic Setup
 
-1. [Install Zola](https://getzola.org)
+1. [Install Zola](https://getzola.com)
 2. Clone the particle theme: `git clone https://github.com/svavs/particle-zola.git`
 3. Edit `config.toml` to personalize your site.
 

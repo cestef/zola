@@ -3,11 +3,14 @@
 title = "pickles"
 description = "A modern, simple, clean blog theme for Zola."
 template = "theme.html"
-date = 2024-08-12T05:57:54Z
+date = 2025-01-03T23:14:08-07:00
+
+[taxonomies]
+theme-tags = []
 
 [extra]
-created = 2024-08-12T05:57:54Z
-updated = 2024-08-12T05:57:54Z
+created = 2025-01-03T23:14:08-07:00
+updated = 2025-01-03T23:14:08-07:00
 repository = "https://github.com/lukehsiao/zola-pickles.git"
 homepage = "https://github.com/lukehsiao/zola-pickles"
 minimum_version = "0.19.0"
@@ -30,7 +33,7 @@ homepage = "https://luke.hsiao.dev"
 <div align="center">
   <a href="https://zola-pickles.pages.dev/">
     <img src="https://img.shields.io/badge/demo-website-forestgreen" alt="demo website"></a>
-  <a href="https://github.com/lukehsiao/zola-pickles/blob/main/LICENSE">
+  <a href="https://github.com/lukehsiao/zola-pickles/blob/main/LICENSE.md">
     <img src="https://img.shields.io/badge/license-BlueOak--1.0.0-blue" alt="License">
   </a>
 </div>

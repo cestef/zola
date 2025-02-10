@@ -3,16 +3,19 @@
 title = "Seje2"
 description = "A beautiful zola theme"
 template = "theme.html"
-date = 2024-08-12T05:57:54Z
+date = 2024-11-20T15:05:16+08:00
+
+[taxonomies]
+theme-tags = []
 
 [extra]
-created = 2024-08-12T05:57:54Z
-updated = 2024-08-12T05:57:54Z
+created = 2024-11-20T15:05:16+08:00
+updated = 2024-11-20T15:05:16+08:00
 repository = "https://github.com/eatradish/seje2.git"
 homepage = "https://github.com/eatradish/Seje2"
 minimum_version = "0.15.0"
 license = "MIT"
-demo = "https://eatradish.github.io/Seje2"
+demo = "https://blog.miraclemilk.me/Seje2"
 
 [extra.author]
 name = "Mag Mell"
@@ -24,7 +27,7 @@ homepage = "https://blog.utopiosphere.net"
 ![screenshot](screenshot.png)
 
 [Demo](https://eatradish.github.io/Seje2)
-[中文 README](https://github.com/eatradish/Seje2/blob/main/README_zh_cn.md)
+[简体中文](https://github.com/eatradish/Seje2/blob/main/README_zh_cn.md)
 
 ## Installation
 First download this theme to your `themes` directory:
@@ -80,7 +83,7 @@ site URL.
 Set a field in `extra` with a key of `license`:
 
 ```toml
-license = "@ 宇宙眼睛人"
+license = "@ 宇宙眼镜人"
 ```
 
         

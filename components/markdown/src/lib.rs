@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod callouts;
 pub mod codeblock;
 pub mod context;
 pub mod markdown;

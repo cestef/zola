@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
+use crate::callouts::ObsidianCalloutsHandler;
 use crate::markdown::cmark::CowStr;
 
 use crate::math::katex::{KatexCompiler, KatexRenderMode};
@@ -220,7 +221,7 @@ fn fix_link(
 }
 
 /// get only text in a slice of events
-fn get_text(parser_slice: &[Event]) -> String {
+fn get_text<AD>(parser_slice: &[Event<'_, AD>]) -> String {
     let mut title = String::new();
 
     for event in parser_slice.iter() {
@@ -233,7 +234,7 @@ fn get_text(parser_slice: &[Event]) -> String {
     title
 }
 
-fn get_heading_refs(events: &[Event]) -> Vec<HeadingRef> {
+fn get_heading_refs<AD>(events: &[Event<'_, AD>]) -> Vec<HeadingRef> {
     let mut heading_refs = vec![];
 
     for (i, event) in events.iter().enumerate() {
@@ -256,7 +257,7 @@ fn get_heading_refs(events: &[Event]) -> Vec<HeadingRef> {
     heading_refs
 }
 
-fn convert_footnotes_to_github_style(old_events: &mut Vec<Event>) {
+fn convert_footnotes_to_github_style<AD: PartialEq>(old_events: &mut Vec<Event<'_, AD>>) {
     let events = std::mem::take(old_events);
     // step 1: We need to extract footnotes from the event stream and tweak footnote references
 
@@ -449,6 +450,7 @@ pub fn markdown_to_html(
     opts.insert(Options::ENABLE_TASKLISTS);
     opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
     opts.insert(Options::ENABLE_MATH);
+    opts.insert(Options::ENABLE_BLOCK_QUOTE_ADMONITIONS);
 
     if context.config.markdown.smart_punctuation {
         opts.insert(Options::ENABLE_SMART_PUNCTUATION);
@@ -553,7 +555,14 @@ pub fn markdown_to_html(
 
         let mut accumulated_block = String::new();
 
-        for (event, mut range) in Parser::new_ext(content, opts).into_offset_iter() {
+        for (event, mut range) in Parser::new_with_callbacks(
+            content,
+            opts,
+            None::<cmark::DefaultBrokenLinkCallback>,
+            ObsidianCalloutsHandler,
+        )
+        .into_offset_iter()
+        {
             match event {
                 Event::Text(text) => {
                     if let Some(ref mut _code_block) = code_block {
@@ -696,6 +705,15 @@ pub fn markdown_to_html(
                         inside_attribute = false;
                         Event::Start(Tag::Image { link_type, dest_url: link, title, id })
                     });
+                }
+                Event::Start(Tag::BlockQuote(Some(kind))) => {
+                    const CALLOUT_START: &str = include_str!("../assets/callouts/start.tmpl");
+                    let class = kind.as_str().to_lowercase();
+
+                    events.push(Event::Html(CALLOUT_START.replace("{{kind}}", &class).into()));
+                }
+                Event::End(TagEnd::BlockQuote(Some(_))) => {
+                    events.push(Event::Html("</div>".into()));
                 }
                 Event::End(TagEnd::Image) => events.push(if lazy_async_image {
                     Event::Html("\" loading=\"lazy\" decoding=\"async\" />".into())

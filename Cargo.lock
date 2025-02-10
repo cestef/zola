@@ -2747,7 +2747,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pulldown-cmark",
- "pulldown-cmark-escape",
+ "pulldown-cmark-escape 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickxml_to_serde",
  "rayon",
  "regex",
@@ -4057,12 +4057,11 @@ dependencies = [
 [[package]]
 name = "pulldown-cmark"
 version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f86ba2052aebccc42cbbb3ed234b8b13ce76f75c3551a303cb2bcffcff12bb14"
+source = "git+https://github.com/cestef/pulldown-cmark?branch=admonition-handler-fix#250754642b31fae255ce0b11bc4436391d5f55db"
 dependencies = [
  "bitflags 2.8.0",
  "memchr",
- "pulldown-cmark-escape",
+ "pulldown-cmark-escape 0.11.0 (git+https://github.com/cestef/pulldown-cmark?branch=admonition-handler-fix)",
  "unicase",
 ]
 
@@ -4071,6 +4070,11 @@ name = "pulldown-cmark-escape"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "007d8adb5ddab6f8e3f491ac63566a7d5002cc7ed73901f72057943fa71ae1ae"
+
+[[package]]
+name = "pulldown-cmark-escape"
+version = "0.11.0"
+source = "git+https://github.com/cestef/pulldown-cmark?branch=admonition-handler-fix#250754642b31fae255ce0b11bc4436391d5f55db"
 
 [[package]]
 name = "pure-rust-locales"

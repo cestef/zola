@@ -84,10 +84,11 @@ pub struct TypstCompiler {
     pub packages_cache: PathBuf,
     pub files: Mutex<HashMap<FileId, TypstFile>>,
     pub render_cache: Option<Arc<TypstCache>>,
+    pub additional: Option<String>,
 }
 
 impl TypstCompiler {
-    pub fn new(base_cache_path: PathBuf) -> Self {
+    pub fn new(base_cache_path: PathBuf, addon: Option<String>) -> Self {
         let fonts = fonts();
 
         Self {
@@ -97,6 +98,7 @@ impl TypstCompiler {
             packages_cache: base_cache_path.join("packages"),
             files: Mutex::new(HashMap::new()),
             render_cache: None,
+            additional: addon,
         }
     }
 
@@ -224,9 +226,11 @@ impl Compiler<TypstRenderMode, (String, Option<f64>)> for TypstCompiler {
     ) -> Result<(String, Option<f64>), String> {
         // Prepare source based on mode
         let source = match mode {
-            TypstRenderMode::Display => templates::display_math(&source),
-            TypstRenderMode::Inline => templates::inline_math(&source),
-            TypstRenderMode::Raw => templates::raw(&source),
+            TypstRenderMode::Display => {
+                templates::display_math(&source, self.additional.as_deref())
+            }
+            TypstRenderMode::Inline => templates::inline_math(&source, self.additional.as_deref()),
+            TypstRenderMode::Raw => templates::raw(&source, self.additional.as_deref()),
         };
 
         // Generate cache key

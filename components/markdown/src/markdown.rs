@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::markdown::cmark::CowStr;
 
@@ -17,6 +17,7 @@ use libs::once_cell::sync::Lazy;
 use libs::pulldown_cmark as cmark;
 use libs::pulldown_cmark_escape as cmark_escape;
 use libs::tera;
+use utils::fs::read_file;
 use utils::net::is_external_link;
 
 use crate::context::RenderContext;
@@ -461,7 +462,15 @@ pub fn markdown_to_html(
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
 
-    let mut typst = TypstCompiler::new(context.caches.typst.dir().to_path_buf());
+    let typst_addon = context
+        .config
+        .markdown
+        .math_typst_addon
+        .as_ref()
+        .map(|path| read_file(Path::new(path)).ok())
+        .flatten();
+
+    let mut typst = TypstCompiler::new(context.caches.typst.dir().to_path_buf(), typst_addon);
     let mut katex = KatexCompiler::new();
     let minify = if context.config.markdown.math_svgo {
         ShouldMinify::Yes(context.config.markdown.math_svgo_config.as_deref())

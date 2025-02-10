@@ -89,6 +89,8 @@ pub struct Markdown {
     pub cache: bool,
     /// Whether to warn when a highlight language is missing
     pub warn_missing_highlight: bool,
+    /// Path to an optional file that will be avaiable to the typst math rendering
+    pub math_typst_addon: Option<String>,
 }
 
 impl Markdown {
@@ -271,6 +273,7 @@ impl Default for Markdown {
             cache_dir: None,
             cache: true,
             warn_missing_highlight: false,
+            math_typst_addon: None,
         }
     }
 }

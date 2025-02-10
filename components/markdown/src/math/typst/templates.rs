@@ -1,14 +1,17 @@
-pub fn display_math(code: &str) -> String {
+pub fn display_math(code: &str, additional: Option<&str>) -> String {
+    let additional = additional.unwrap_or_default();
     format!(
         r#"
 #set page(height: auto, width: auto, margin: 0pt, fill: none)
 #set text(14pt)
+{additional}
 $ {code} $
 "#,
     )
 }
 
-pub fn inline_math(code: &str) -> String {
+pub fn inline_math(code: &str, additional: Option<&str>) -> String {
+    let additional = additional.unwrap_or_default();
     format!(
         r#"
 #set page(height: auto, width: auto, margin: 0pt, fill: none)
@@ -25,7 +28,7 @@ pub fn inline_math(code: &str) -> String {
 #show math.equation: it => {{
     box(it, inset: (top: 0.5em, bottom: 0.5em))
     }}
-
+{additional}
 $pin("l1"){code}$
 
 #context [
@@ -35,11 +38,13 @@ $pin("l1"){code}$
     )
 }
 
-pub fn raw(code: &str) -> String {
+pub fn raw(code: &str, additional: Option<&str>) -> String {
+    let additional = additional.unwrap_or_default();
     format!(
         r#"
 #set page(height: auto, width: auto, margin: 0pt, fill: none)
 #set text(16pt)
+{additional}
 {code}
 "#,
     )

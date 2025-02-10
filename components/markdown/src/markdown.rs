@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::path::PathBuf;
 
 use crate::markdown::cmark::CowStr;
 use errors::bail;
@@ -576,14 +577,25 @@ pub fn markdown_to_html(
                 }
                 Event::End(TagEnd::CodeBlock { .. }) => {
                     if let Some(ref mut code_block) = code_block {
-                        let html = code_block.highlight(&accumulated_block);
+                        let inner = code_block
+                            .include(
+                                context
+                                    .parent_absolute
+                                    .map(|e| {
+                                        path.map(|p| e.join(PathBuf::from(p).parent().unwrap()))
+                                    })
+                                    .flatten()
+                                    .as_ref(),
+                            )
+                            .unwrap_or(accumulated_block.clone());
+                        let html = code_block.highlight(&inner);
                         events.push(Event::Html(html.into()));
                         accumulated_block.clear();
+                        events.push(Event::Html("</code></pre>\n".into()));
                     }
 
                     // reset highlight and close the code block
                     code_block = None;
-                    events.push(Event::Html("</code></pre>\n".into()));
                 }
                 Event::Start(Tag::Image { link_type, dest_url, title, id }) => {
                     let link = if is_colocated_asset_link(&dest_url) {

@@ -87,6 +87,8 @@ pub struct Markdown {
     /// Whether to cache the rendered math
     #[serde(skip)]
     pub cache: bool,
+    /// Whether to warn when a highlight language is missing
+    pub warn_missing_highlight: bool,
 }
 
 impl Markdown {
@@ -268,6 +270,7 @@ impl Default for Markdown {
             math_svgo_config: None,
             cache_dir: None,
             cache: true,
+            warn_missing_highlight: false,
         }
     }
 }

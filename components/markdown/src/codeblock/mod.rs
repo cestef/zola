@@ -98,7 +98,10 @@ impl<'config> CodeBlock<'config> {
         path: Option<&'config str>,
     ) -> Result<(Self, String)> {
         let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);
-        if syntax_and_theme.source == HighlightSource::NotFound && config.markdown.highlight_code {
+        if syntax_and_theme.source == HighlightSource::NotFound
+            && config.markdown.highlight_code
+            && config.markdown.warn_missing_highlight
+        {
             let lang = fence.language.unwrap();
             let msg = if let Some(p) = path {
                 format!("Highlight language {} not found in {}", lang, p)

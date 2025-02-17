@@ -616,6 +616,7 @@ pub fn markdown_to_html(
                         cmark::CodeBlockKind::Fenced(fence_info) => FenceSettings::new(fence_info),
                         _ => FenceSettings::new(""),
                     };
+
                     let (block, begin) = match CodeBlock::new(&fence, context.config, path) {
                         Ok(cb) => cb,
                         Err(e) => {

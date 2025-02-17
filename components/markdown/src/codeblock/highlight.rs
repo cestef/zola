@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use ansi_to_html::Converter;
 use config::highlighting::{SyntaxAndTheme, CLASS_STYLE};
 use libs::syntect::easy::HighlightLines;
 use libs::syntect::highlighting::{Color, Theme};
@@ -128,6 +129,7 @@ impl<'config> InlineHighlighter<'config> {
 pub(crate) enum SyntaxHighlighter<'config> {
     Inlined(InlineHighlighter<'config>),
     Classed(ClassHighlighter<'config>),
+    Ansi(Converter),
     /// We might not want highlighting but we want line numbers or to hide some lines
     NoHighlight,
 }
@@ -151,6 +153,7 @@ impl<'config> SyntaxHighlighter<'config> {
         match self {
             Inlined(h) => h.highlight_line(line),
             Classed(h) => h.highlight_line(line),
+            Ansi(c) => c.convert(line).unwrap(),
             NoHighlight => escape_html(line),
         }
     }
@@ -160,7 +163,7 @@ impl<'config> SyntaxHighlighter<'config> {
         use SyntaxHighlighter::*;
 
         match self {
-            Classed(_) | NoHighlight => None,
+            Classed(_) | NoHighlight | Ansi(_) => None,
             Inlined(h) => {
                 let mut styles = String::from("background-color:");
                 write_css_color(&mut styles, h.theme.settings.background.unwrap_or(Color::WHITE));
@@ -177,7 +180,7 @@ impl<'config> SyntaxHighlighter<'config> {
         use SyntaxHighlighter::*;
 
         match self {
-            Classed(_) => {
+            Classed(_) | Ansi(_) => {
                 if let ClassStyle::SpacedPrefixed { prefix } = CLASS_STYLE {
                     Some(format!("{}code", prefix))
                 } else {
@@ -193,7 +196,7 @@ impl<'config> SyntaxHighlighter<'config> {
         use SyntaxHighlighter::*;
 
         match self {
-            Classed(_) | NoHighlight => None,
+            Classed(_) | NoHighlight | Ansi(_) => None,
             Inlined(h) => {
                 let mut styles = String::from("background-color:");
                 write_css_color(

@@ -4,6 +4,7 @@ mod highlight;
 use std::ops::RangeInclusive;
 use std::path::PathBuf;
 
+use ansi_to_html::Converter;
 use errors::{bail, Result};
 use libs::syntect::util::LinesWithEndings;
 use utils::fs::read_file;
@@ -97,24 +98,29 @@ impl<'config> CodeBlock<'config> {
         // path to the current file if there is one, to point where the error is
         path: Option<&'config str>,
     ) -> Result<(Self, String)> {
-        let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);
-        if syntax_and_theme.source == HighlightSource::NotFound
-            && config.markdown.highlight_code
-            && config.markdown.warn_missing_highlight
-        {
-            let lang = fence.language.unwrap();
-            let msg = if let Some(p) = path {
-                format!("Highlight language {} not found in {}", lang, p)
-            } else {
-                format!("Highlight language {} not found", lang)
-            };
-            if config.markdown.error_on_missing_highlight {
-                bail!(msg);
-            } else {
-                eprintln!("Warning: {}", msg);
+        // println!("Rendering fence: {:#?}", fence);
+        let highlighter = if matches!(fence.language, Some("ansi")) {
+            SyntaxHighlighter::Ansi(Converter::new().four_bit_var_prefix(Some("ansi-".to_string())))
+        } else {
+            let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);
+            if syntax_and_theme.source == HighlightSource::NotFound
+                && config.markdown.highlight_code
+                && config.markdown.warn_missing_highlight
+            {
+                let lang = fence.language.unwrap();
+                let msg = if let Some(p) = path {
+                    format!("Highlight language {} not found in {}", lang, p)
+                } else {
+                    format!("Highlight language {} not found", lang)
+                };
+                if config.markdown.error_on_missing_highlight {
+                    bail!(msg);
+                } else {
+                    eprintln!("Warning: {}", msg);
+                }
             }
-        }
-        let highlighter = SyntaxHighlighter::new(config.markdown.highlight_code, syntax_and_theme);
+            SyntaxHighlighter::new(config.markdown.highlight_code, syntax_and_theme)
+        };
 
         let html_start = opening_html(
             fence.language,

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.20.0 (unreleased)
+## 0.20.0 (2025-02-14)
 
 - Add `name` annotation for codeblock
 - Add argument to `zola serve` to watch additional directories
@@ -13,6 +13,8 @@
 - Handle more editors with change detection in `zola serve`
 - Add argument to `zola serve` to write HTML files to disk (`--store-html`)
 - Add optional parsing of Markdown definition lists
+- Add avif support to the `resize_image` filter
+- Allow `insert_anchor_links` at config.toml level
 
 
 ## 0.19.2 (2024-08-15)

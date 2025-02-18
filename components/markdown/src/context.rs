@@ -9,6 +9,7 @@ use utils::templates::ShortcodeDefinition;
 use utils::types::InsertAnchor;
 
 use crate::math::katex::KatexCache;
+use crate::math::typst::mathml::TypstMathMLCache;
 use crate::math::typst::TypstCache;
 
 /// All the information from the zola site that is needed to render HTML from markdown
@@ -31,6 +32,7 @@ pub struct RenderContext<'a> {
 pub struct Caches {
     pub typst: Arc<TypstCache>,
     pub katex: Arc<KatexCache>,
+    pub typst_mathml: Arc<TypstMathMLCache>,
 }
 
 impl Caches {
@@ -38,6 +40,7 @@ impl Caches {
         Self {
             typst: Arc::new(TypstCache::new(cache_path, "typst").unwrap()),
             katex: Arc::new(KatexCache::new(cache_path, "katex").unwrap()),
+            typst_mathml: Arc::new(TypstMathMLCache::new(cache_path, "typst_mathml").unwrap()),
         }
     }
 }

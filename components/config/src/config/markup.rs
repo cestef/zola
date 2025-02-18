@@ -85,7 +85,6 @@ pub struct Markdown {
     /// The directory where the cache for the math rendering and other stuff will be stored
     pub cache_dir: Option<String>,
     /// Whether to cache the rendered math
-    #[serde(skip)]
     pub cache: bool,
 }
 

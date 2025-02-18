@@ -4,6 +4,7 @@ use std::fmt::Write;
 use crate::markdown::cmark::CowStr;
 
 use crate::math::katex::{KatexCompiler, KatexRenderMode};
+use crate::math::typst::mathml::TypstMathMLCompiler;
 use crate::math::Compiler;
 use crate::math::{
     svgo::Svgo,
@@ -461,6 +462,7 @@ pub fn markdown_to_html(
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
 
     let mut typst = TypstCompiler::new(context.caches.typst.dir().to_path_buf());
+    let mut mathml = TypstMathMLCompiler::new();
     let mut katex = KatexCompiler::new();
     let minify = if context.config.markdown.math_svgo {
         ShouldMinify::Yes(context.config.markdown.math_svgo_config.as_deref())
@@ -469,6 +471,7 @@ pub fn markdown_to_html(
     };
     if context.config.markdown.cache {
         typst.set_cache(context.caches.typst.clone());
+        mathml.set_cache(context.caches.typst_mathml.clone());
         katex.set_cache(context.caches.katex.clone());
     }
 
@@ -768,19 +771,19 @@ pub fn markdown_to_html(
                                 TypstRenderMode::Display
                             };
 
-                            let rendered = typst.compile(content, render_mode, &minify);
+                            let rendered = mathml.compile(content, render_mode, &minify);
 
                             match rendered {
-                                Ok((svg, align)) => {
+                                Ok(svg) => {
                                     // Format after minification
-                                    let formatted = typst::format_svg(
-                                        &svg,
-                                        align,
-                                        render_mode,
-                                        context.config.markdown.math_css.as_deref(),
-                                    );
+                                    // let formatted = typst::format_svg(
+                                    //     &svg,
+                                    //     align,
+                                    //     render_mode,
+                                    //     context.config.markdown.math_css.as_deref(),
+                                    // );
 
-                                    events.push(Event::Html(formatted.into()));
+                                    events.push(Event::Html(svg.into()));
                                 }
                                 Err(e) => {
                                     error =
@@ -963,6 +966,12 @@ pub fn markdown_to_html(
         }
 
         if let Some(render_cache) = typst.render_cache {
+            render_cache.write()?;
+        }
+        if let Some(render_cache) = mathml.cache {
+            render_cache.write()?;
+        }
+        if let Some(render_cache) = katex.cache {
             render_cache.write()?;
         }
 

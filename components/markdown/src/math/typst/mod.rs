@@ -8,6 +8,7 @@ use std::{
 };
 use twox_hash::XxHash64;
 
+use typst::layout::PagedDocument;
 use typst::{
     diag::{eco_format, FileError, FileResult, PackageError, PackageResult},
     foundations::{Bytes, Datetime, Label},
@@ -20,7 +21,7 @@ use typst::{
 fn fonts() -> Vec<Font> {
     typst_assets::fonts()
         .flat_map(|bytes| {
-            let buffer = Bytes::from_static(bytes);
+            let buffer = Bytes::new(bytes);
             let face_count = ttf_parser::fonts_in_collection(&buffer).unwrap_or(1);
             (0..face_count).map(move |face| {
                 Font::new(buffer.clone(), face).expect("failed to load font from typst-assets")
@@ -30,6 +31,7 @@ fn fonts() -> Vec<Font> {
 }
 
 mod format;
+pub mod mathml;
 mod templates;
 
 pub use format::*;
@@ -194,8 +196,9 @@ impl TypstCompiler {
                 };
                 let contents =
                     std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
-                let entry =
-                    files.entry(id).or_insert(TypstFile { bytes: contents.into(), source: None });
+                let entry = files
+                    .entry(id)
+                    .or_insert(TypstFile { bytes: Bytes::new(contents), source: None });
                 return Ok(map(entry));
             }
         }
@@ -245,7 +248,7 @@ impl Compiler<TypstRenderMode, (String, Option<f64>)> for TypstCompiler {
 
         // Compile the source
         let world = self.wrap_source(source);
-        let document = typst::compile(&world);
+        let document = typst::compile::<PagedDocument>(&world);
         let warnings = document.warnings;
 
         if !warnings.is_empty() {

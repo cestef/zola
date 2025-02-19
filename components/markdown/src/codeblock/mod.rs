@@ -2,12 +2,10 @@ mod fence;
 mod highlight;
 
 use std::ops::RangeInclusive;
-use std::path::PathBuf;
 
 use ansi_to_html::Converter;
 use errors::{bail, Result};
 use libs::syntect::util::LinesWithEndings;
-use utils::fs::read_file;
 
 use crate::codeblock::highlight::SyntaxHighlighter;
 use config::highlighting::{resolve_syntax_and_theme, HighlightSource};
@@ -88,12 +86,6 @@ pub struct CodeBlock<'config> {
     line_number_start: usize,
     highlight_lines: Vec<RangeInclusive<usize>>,
     hide_lines: Vec<RangeInclusive<usize>>,
-    include: Option<String>,
-}
-
-pub enum CodeBlockType<'config> {
-    Highlighted(CodeBlock<'config>),
-    Rendered,
 }
 
 impl<'config> CodeBlock<'config> {
@@ -141,17 +133,9 @@ impl<'config> CodeBlock<'config> {
                 line_number_start: fence.line_number_start,
                 highlight_lines: fence.highlight_lines.clone(),
                 hide_lines: fence.hide_lines.clone(),
-                include: fence.include.map(|s| s.to_string()),
             },
             html_start,
         ))
-    }
-
-    pub fn include(&self, base: Option<&PathBuf>) -> Option<String> {
-        let path = base?.join(self.include.as_ref()?);
-        let res = read_file(&path);
-
-        res.ok()
     }
 
     pub fn highlight(&mut self, content: &str) -> String {

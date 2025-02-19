@@ -1,4 +1,6 @@
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, path::PathBuf};
+
+use utils::fs::read_file;
 
 fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
     match s.find('-') {
@@ -56,6 +58,13 @@ impl<'a> FenceSettings<'a> {
         }
 
         me
+    }
+
+    pub fn include(&self, base: Option<&PathBuf>) -> Option<String> {
+        let path = base?.join(self.include.as_ref()?);
+        let res = read_file(&path);
+
+        res.ok()
     }
 }
 

@@ -312,10 +312,8 @@ mod tests {
     use std::fs::{create_dir, File};
     use std::io::Write;
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
 
     use libs::globset::{Glob, GlobSetBuilder};
-    use markdown::context::Caches;
     use tempfile::tempdir;
     use templates::ZOLA_TERA;
 

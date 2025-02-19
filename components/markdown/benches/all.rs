@@ -1,11 +1,11 @@
 #![feature(test)]
 extern crate test;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use config::Config;
 use libs::tera::Tera;
-use markdown::{context::Caches, render_content, RenderContext};
+use markdown::{render_content, RenderContext};
 use utils::types::InsertAnchor;
 
 const CONTENT: &str = r#"

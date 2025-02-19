@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use libs::tera::Tera;
 
 use config::Config;
 use errors::Result;
-use markdown::{context::Caches, render_content, RenderContext, Rendered};
+use markdown::{render_content, RenderContext, Rendered};
 use templates::ZOLA_TERA;
 use utils::types::InsertAnchor;
 

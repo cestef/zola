@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use libs::tera::Tera;
 
 use config::Config;
-use markdown::context::Caches;
 use markdown::{render_content, RenderContext};
 use templates::ZOLA_TERA;
 use utils::slugs::SlugifyStrategy;

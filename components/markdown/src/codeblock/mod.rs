@@ -91,6 +91,11 @@ pub struct CodeBlock<'config> {
     include: Option<String>,
 }
 
+pub enum CodeBlockType<'config> {
+    Highlighted(CodeBlock<'config>),
+    Rendered,
+}
+
 impl<'config> CodeBlock<'config> {
     pub fn new<'fence_info>(
         fence: &FenceSettings<'fence_info>,
@@ -105,7 +110,6 @@ impl<'config> CodeBlock<'config> {
             let syntax_and_theme = resolve_syntax_and_theme(fence.language, config);
             if syntax_and_theme.source == HighlightSource::NotFound
                 && config.markdown.highlight_code
-                && config.markdown.warn_missing_highlight
             {
                 let lang = fence.language.unwrap();
                 let msg = if let Some(p) = path {

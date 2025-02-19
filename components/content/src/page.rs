@@ -215,7 +215,7 @@ impl Page {
         config: &Config,
         anchor_insert: InsertAnchor,
         shortcode_definitions: &HashMap<String, ShortcodeDefinition>,
-        caches: Arc<Caches>,
+        caches: Option<Arc<Caches>>,
     ) -> Result<()> {
         let mut context = RenderContext::new(
             tera,
@@ -343,7 +343,7 @@ Hello world"#;
             &config,
             InsertAnchor::None,
             &HashMap::new(),
-            Arc::new(Caches::default()),
+            None,
         )
         .unwrap();
 
@@ -372,7 +372,7 @@ Hello world"#;
             &config,
             InsertAnchor::None,
             &HashMap::new(),
-            Arc::new(Caches::default()),
+            None,
         )
         .unwrap();
 
@@ -543,7 +543,7 @@ Hello world
             &config,
             InsertAnchor::None,
             &HashMap::new(),
-            Arc::new(Caches::default()),
+            None,
         )
         .unwrap();
         assert_eq!(page.summary, Some("<p>Hello world</p>".to_string()));
@@ -578,7 +578,7 @@ And here's another. [^3]
             &config,
             InsertAnchor::None,
             &HashMap::new(),
-            Arc::new(Caches::default()),
+            None,
         )
         .unwrap();
         assert_eq!(

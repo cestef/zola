@@ -69,7 +69,7 @@ fn configurable_render(
         "https://www.getzola.org/test/",
         &permalinks,
         insert_anchor,
-        Arc::new(Caches::default()),
+        None,
     );
     let shortcode_def = utils::templates::get_shortcodes(&tera);
     context.set_shortcode_definitions(&shortcode_def);

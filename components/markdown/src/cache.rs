@@ -1,10 +1,11 @@
+use crate::Result;
 use bincode;
 use dashmap::DashMap;
+use errors::Context;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
 use std::hash::Hash;
-
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 /// Generic cache using DashMap, storing data in a binary file
@@ -30,18 +31,18 @@ where
 
     /// Create a new cache for a specific type
     pub fn new(base_cache_dir: &Path, filename: &str) -> crate::Result<Self> {
-        // Create the base cache directory
-        fs::create_dir_all(base_cache_dir)?;
-
         // Full path to the cache file
         let cache_file = base_cache_dir.join(filename);
 
         // Attempt to load existing cache
         let cache = match Self::read_cache(&cache_file) {
-            Ok(loaded_cache) => {
-                println!("Loaded cache from {:?} ({:?})", cache_file, loaded_cache.len());
-                loaded_cache
-            }
+            Ok(maybe_cache) => match maybe_cache {
+                Some(c) => {
+                    println!("Loaded cache from {:?} ({:?})", cache_file, c.len());
+                    c
+                }
+                None => DashMap::new(),
+            },
             Err(e) => {
                 println!("Failed to load cache: {}", e);
                 DashMap::new()
@@ -52,22 +53,22 @@ where
     }
 
     /// Read cache from file
-    fn read_cache(cache_file: &Path) -> io::Result<DashMap<K, V>> {
+    fn read_cache(cache_file: &Path) -> Result<Option<DashMap<K, V>>> {
         if !cache_file.exists() {
-            return Ok(DashMap::new());
+            return Ok(None);
         }
 
         let mut file = File::open(cache_file)?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
 
-        bincode::deserialize(&buffer).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        bincode::deserialize(&buffer).context("Failed to deserialize cache").map(Some)
     }
 
     /// Write cache to file
-    pub fn write(&self) -> io::Result<()> {
-        let serialized = bincode::serialize(&self.cache)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    pub fn write(&self) -> Result<()> {
+        fs::create_dir_all(self.dir())?;
+        let serialized = bincode::serialize(&self.cache).context("Failed to serialize cache")?;
 
         let mut file =
             OpenOptions::new().write(true).create(true).truncate(true).open(&self.cache_file)?;
@@ -93,7 +94,7 @@ where
     }
 
     /// Clear the cache and remove the file
-    pub fn clear(&self) -> crate::Result<()> {
+    pub fn clear(&self) -> Result<()> {
         self.cache.clear();
 
         if self.cache_file.exists() {

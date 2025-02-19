@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::Path;
+use std::sync::Arc;
 
+use crate::cache::GenericCache;
 use crate::callouts::ObsidianCalloutsHandler;
 use crate::markdown::cmark::CowStr;
 
-use crate::math::katex::{KatexCompiler, KatexRenderMode};
-use crate::math::Compiler;
 use crate::math::{
-    svgo::Svgo,
-    typst::{self, TypstCompiler, TypstRenderMode},
-    ShouldMinify,
+    katex::KatexCompiler, svgo::Svgo, typst::TypstCompiler, MathCompiler, MathRenderMode,
 };
+use config::{BoolWithPath, MathRenderingEngine};
 use errors::bail;
 use libs::gh_emoji::Replacer as EmojiReplacer;
 use libs::once_cell::sync::Lazy;
@@ -31,7 +30,7 @@ use utils::table_of_contents::{make_table_of_contents, Heading};
 use utils::types::InsertAnchor;
 
 use self::cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
-use crate::codeblock::{CodeBlock, FenceSettings};
+use crate::codeblock::{CodeBlock, CodeBlockType, FenceSettings};
 use crate::shortcode::{Shortcode, SHORTCODE_PLACEHOLDER};
 
 const CONTINUE_READING: &str = "<span id=\"continue-reading\"></span>";
@@ -427,8 +426,7 @@ pub fn markdown_to_html(
     // Set while parsing
     let mut error = None;
 
-    let mut code_block: Option<CodeBlock> = None;
-    let mut code_block_language: Option<String> = None;
+    let mut code_block: Option<CodeBlockType> = None;
     // Indicates whether we're in the middle of parsing a text node which will be placed in an HTML
     // attribute, and which hence has to be escaped using escape_html rather than push_html's
     // default HTML body escaping for text nodes.
@@ -449,8 +447,10 @@ pub fn markdown_to_html(
     opts.insert(Options::ENABLE_STRIKETHROUGH);
     opts.insert(Options::ENABLE_TASKLISTS);
     opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
-    opts.insert(Options::ENABLE_MATH);
     opts.insert(Options::ENABLE_BLOCK_QUOTE_ADMONITIONS);
+    if context.config.markdown.math.engine != config::MathRenderingEngine::None {
+        opts.insert(Options::ENABLE_MATH);
+    }
 
     if context.config.markdown.smart_punctuation {
         opts.insert(Options::ENABLE_SMART_PUNCTUATION);
@@ -463,28 +463,50 @@ pub fn markdown_to_html(
     let mut html_shortcodes: Vec<_> = html_shortcodes.into_iter().rev().collect();
     let mut next_shortcode = html_shortcodes.pop();
     let contains_shortcode = |txt: &str| -> bool { txt.contains(SHORTCODE_PLACEHOLDER) };
-
-    let typst_addon = context
+    let addon = context
         .config
         .markdown
-        .math_typst_addon
+        .math
+        .addon
         .as_ref()
-        .map(|path| read_file(Path::new(path)).ok())
+        .map(|path| read_file(Path::new(&path)).ok())
         .flatten();
 
-    let mut typst = TypstCompiler::new(context.caches.typst.dir().to_path_buf(), typst_addon);
-    let mut katex = KatexCompiler::new();
-    let minify = if context.config.markdown.math_svgo {
-        ShouldMinify::Yes(context.config.markdown.math_svgo_config.as_deref())
-    } else {
-        ShouldMinify::No
+    let styles = context
+        .config
+        .markdown
+        .math
+        .css
+        .as_ref()
+        .map(|path| read_file(Path::new(&path)).ok())
+        .flatten();
+
+    let (mut compiler, cache): (
+        Option<Box<dyn MathCompiler>>,
+        Option<Arc<GenericCache<String, String>>>,
+    ) = match context.config.markdown.math.engine {
+        MathRenderingEngine::Typst => (
+            Some(Box::new(TypstCompiler::new(
+                context.caches.as_ref().map(|e| e.typst.dir().to_path_buf()),
+                addon,
+                styles,
+            ))),
+            context.caches.as_ref().map(|e| e.typst.clone()),
+        ),
+        MathRenderingEngine::Katex => (
+            Some(Box::new(KatexCompiler::new(addon))),
+            context.caches.as_ref().map(|e| e.katex.clone()),
+        ),
+        MathRenderingEngine::None => (None, None),
     };
-    if context.config.markdown.cache {
-        typst.set_cache(context.caches.typst.clone());
-        katex.set_cache(context.caches.katex.clone());
+
+    if let Some(ref mut compiler) = compiler {
+        if let Some(cache) = cache {
+            compiler.set_cache(cache);
+        }
     }
 
-    if context.config.markdown.math_svgo {
+    if matches!(context.config.markdown.math.svgo, BoolWithPath::True(_)) {
         Svgo::default().check_bin().map_err(|e| {
             Error::msg(format!(
                 "Error checking svgo installation, make sure it's installed and in your PATH: {}",
@@ -616,61 +638,60 @@ pub fn markdown_to_html(
                         cmark::CodeBlockKind::Fenced(fence_info) => FenceSettings::new(fence_info),
                         _ => FenceSettings::new(""),
                     };
-
-                    let (block, begin) = match CodeBlock::new(&fence, context.config, path) {
-                        Ok(cb) => cb,
-                        Err(e) => {
-                            error = Some(e);
-                            break;
+                    let should_render = match (fence.language.as_deref(), &compiler) {
+                        (Some(lang), Some(compiler))
+                            if compiler.raw_extensions().contains(&lang) =>
+                        {
+                            true
                         }
+                        _ => false,
                     };
-                    code_block = Some(block);
-                    if !matches!(fence.language, Some("typ")) {
+                    if should_render {
+                        code_block = Some(CodeBlockType::Rendered);
+                    } else {
+                        let (block, begin) = match CodeBlock::new(&fence, context.config, path) {
+                            Ok(cb) => cb,
+                            Err(e) => {
+                                error = Some(e);
+                                break;
+                            }
+                        };
+                        code_block = Some(CodeBlockType::Highlighted(block));
                         events.push(Event::Html(begin.into()));
                     }
-                    code_block_language = fence.language.map(|s| s.to_string());
                 }
                 Event::End(TagEnd::CodeBlock { .. }) => {
-                    if let Some(ref mut code_block) = code_block {
-                        let inner = code_block
-                            .include(context.parent_absolute.as_ref())
-                            .unwrap_or(accumulated_block.clone());
-                        match code_block_language.as_deref() {
-                            Some("typ") => {
-                                let rendered = typst.compile(&inner, TypstRenderMode::Raw, &minify);
+                    match code_block {
+                        Some(ref mut code_block) => match code_block {
+                            CodeBlockType::Rendered => {
+                                if let Some(ref compiler) = compiler {
+                                    let rendered = compiler.compile(
+                                        &accumulated_block,
+                                        MathRenderMode::Raw,
+                                        &context.config.markdown.math.svgo,
+                                    );
 
-                                match rendered {
-                                    Ok((svg, _)) => {
-                                        // Format after minification
-                                        let formatted = typst::format_svg(
-                                            &svg,
-                                            None,
-                                            TypstRenderMode::Raw,
-                                            context.config.markdown.math_css.as_deref(),
-                                        );
-                                        events.push(Event::Html(formatted.into()));
-                                    }
-                                    Err(e) => {
-                                        error = Some(Error::msg(format!(
-                                            "Failed to render math: {}",
-                                            e
-                                        )));
+                                    match rendered {
+                                        Ok(svg) => {
+                                            events.push(Event::Html(svg.into()));
+                                        }
+                                        Err(e) => {
+                                            error = Some(e);
+                                        }
                                     }
                                 }
                             }
-
-                            _ => {
-                                let mut html = code_block.highlight(&inner);
-                                html.push_str("</code></pre>\n");
+                            CodeBlockType::Highlighted(ref mut code_block) => {
+                                let html = code_block.highlight(&accumulated_block);
                                 events.push(Event::Html(html.into()));
                             }
-                        }
+                        },
+                        None => {}
                     }
 
-                    // reset highlight and close the code block
+                    // reset code block state
                     code_block = None;
                     accumulated_block.clear();
-                    code_block_language = None;
                 }
                 Event::Start(Tag::Image { link_type, dest_url, title, id }) => {
                     let link = if is_colocated_asset_link(&dest_url) {
@@ -793,54 +814,27 @@ pub fn markdown_to_html(
                 }
 
                 Event::InlineMath(ref content) | Event::DisplayMath(ref content) => {
-                    match context.config.markdown.math {
-                        config::MathRendering::Typst => {
-                            let render_mode = if matches!(event, Event::InlineMath(_)) {
-                                TypstRenderMode::Inline
-                            } else {
-                                TypstRenderMode::Display
-                            };
+                    if let Some(ref compiler) = compiler {
+                        let render_mode = if matches!(event, Event::InlineMath(_)) {
+                            MathRenderMode::Inline
+                        } else {
+                            MathRenderMode::Display
+                        };
 
-                            let rendered = typst.compile(content, render_mode, &minify);
+                        let rendered = compiler.compile(
+                            content,
+                            render_mode,
+                            &context.config.markdown.math.svgo,
+                        );
 
-                            match rendered {
-                                Ok((svg, align)) => {
-                                    // Format after minification
-                                    let formatted = typst::format_svg(
-                                        &svg,
-                                        align,
-                                        render_mode,
-                                        context.config.markdown.math_css.as_deref(),
-                                    );
-
-                                    events.push(Event::Html(formatted.into()));
-                                }
-                                Err(e) => {
-                                    error =
-                                        Some(Error::msg(format!("Failed to render math: {}", e)));
-                                }
+                        match rendered {
+                            Ok(svg) => {
+                                events.push(Event::Html(svg.into()));
+                            }
+                            Err(e) => {
+                                error = Some(Error::msg(format!("Failed to render math: {}", e)));
                             }
                         }
-                        config::MathRendering::KaTeX => {
-                            let render_mode = if matches!(event, Event::InlineMath(_)) {
-                                KatexRenderMode::Inline
-                            } else {
-                                KatexRenderMode::Display
-                            };
-
-                            let rendered = katex.compile(content, render_mode, &minify);
-
-                            match rendered {
-                                Ok(html) => {
-                                    events.push(Event::Html(html.into()));
-                                }
-                                Err(e) => {
-                                    error =
-                                        Some(Error::msg(format!("Failed to render math: {}", e)));
-                                }
-                            }
-                        }
-                        config::MathRendering::None => {}
                     }
                 }
 
@@ -995,8 +989,8 @@ pub fn markdown_to_html(
             summary = Some(summary_html);
         }
 
-        if let Some(render_cache) = typst.render_cache {
-            render_cache.write()?;
+        if let Some(ref compiler) = compiler {
+            compiler.write_cache()?;
         }
 
         // emit everything after summary

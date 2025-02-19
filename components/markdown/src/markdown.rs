@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::callouts::ObsidianCalloutsHandler;
 use crate::markdown::cmark::CowStr;
@@ -633,15 +633,7 @@ pub fn markdown_to_html(
                 Event::End(TagEnd::CodeBlock { .. }) => {
                     if let Some(ref mut code_block) = code_block {
                         let inner = code_block
-                            .include(
-                                context
-                                    .parent_absolute
-                                    .map(|e| {
-                                        path.map(|p| e.join(PathBuf::from(p).parent().unwrap()))
-                                    })
-                                    .flatten()
-                                    .as_ref(),
-                            )
+                            .include(context.parent_absolute.as_ref())
                             .unwrap_or(accumulated_block.clone());
                         match code_block_language.as_deref() {
                             Some("typ") => {

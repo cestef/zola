@@ -9,7 +9,7 @@ fn errors_on_index_md_page_in_section() {
     path.push("test_sites_invalid");
     path.push("indexmd");
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
     let res = site.load();
     assert!(res.is_err());
     let err = res.unwrap_err();

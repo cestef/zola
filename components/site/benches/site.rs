@@ -12,7 +12,7 @@ fn setup_site(name: &str) -> Site {
     path.push("benches");
     path.push(name);
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
     site.load().unwrap();
     site
 }

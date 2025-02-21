@@ -12,7 +12,7 @@ fn bench_loading_small_blog(b: &mut test::Bencher) {
     path.push("benches");
     path.push("small-blog");
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
 
     b.iter(|| site.load().unwrap());
 }
@@ -23,7 +23,7 @@ fn bench_loading_small_blog_with_syntax_highlighting(b: &mut test::Bencher) {
     path.push("benches");
     path.push("small-blog");
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
     site.config.markdown.highlight_code = true;
 
     b.iter(|| site.load().unwrap());
@@ -104,7 +104,7 @@ fn bench_loading_small_kb(b: &mut test::Bencher) {
     path.push("benches");
     path.push("small-kb");
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
 
     b.iter(|| site.load().unwrap());
 }
@@ -115,7 +115,7 @@ fn bench_loading_small_kb_with_syntax_highlighting(b: &mut test::Bencher) {
     path.push("benches");
     path.push("small-kb");
     let config_file = path.join("config.toml");
-    let mut site = Site::new(&path, &config_file).unwrap();
+    let mut site = Site::new(&path, &config_file, "").unwrap();
     site.config.markdown.highlight_code = true;
 
     b.iter(|| site.load().unwrap());

@@ -682,6 +682,7 @@ pub fn markdown_to_html(
                     if let Some(ref mut code_block) = code_block {
                         let html = code_block.highlight(&accumulated_block);
                         events.push(Event::Html(html.into()));
+                        events.push(Event::Html("</code></pre>".into()));
                     }
 
                     // reset code block state

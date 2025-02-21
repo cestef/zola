@@ -14,7 +14,7 @@ pub fn check(
     skip_external_links: bool,
 ) -> Result<()> {
     let bp = base_path.map(PathBuf::from).unwrap_or_else(|| PathBuf::from(root_dir));
-    let mut site = Site::new(bp, config_file)?;
+    let mut site = Site::new(bp, config_file, env!("CARGO_PKG_VERSION"))?;
     // Force the checking of external links
     site.config.enable_check_mode();
     if let Some(b) = base_url {

@@ -14,7 +14,7 @@ pub fn build(
     include_drafts: bool,
     minify: bool,
 ) -> Result<()> {
-    let mut site = Site::new(root_dir, config_file)?;
+    let mut site = Site::new(root_dir, config_file, env!("CARGO_PKG_VERSION"))?;
     if let Some(output_dir) = output_dir {
         if !force && output_dir.exists() {
             return Err(Error::msg(format!(

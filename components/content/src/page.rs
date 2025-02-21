@@ -262,6 +262,7 @@ impl Page {
         context.insert("current_path", &self.path);
         context.insert("page", &self.serialize(library));
         context.insert("lang", &self.lang);
+        context.insert("version", &config.version);
 
         render_template(tpl_name, tera, context, &config.theme)
             .with_context(|| format!("Failed to render page '{}'", self.file.path.display()))

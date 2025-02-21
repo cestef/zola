@@ -373,7 +373,7 @@ fn create_new_site(
 ) -> Result<(Site, SocketAddr, String)> {
     SITE_CONTENT.write().unwrap().clear();
 
-    let mut site = Site::new(root_dir, config_file)?;
+    let mut site = Site::new(root_dir, config_file, env!("CARGO_PKG_VERSION"))?;
     let address = SocketAddr::new(interface, interface_port);
 
     // if no base URL provided, use socket address

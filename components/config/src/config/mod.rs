@@ -111,6 +111,9 @@ pub struct Config {
     pub generate_robots_txt: bool,
     /// Whether to exclude paginated pages in sitemap; can take values "none", "all"
     pub exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap,
+
+    // The following fields are not in the config file but are set by Zola
+    pub version: String,
 }
 
 #[derive(Serialize)]
@@ -175,7 +178,7 @@ impl Config {
     }
 
     /// Parses a config file from the given path
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Config> {
+    pub fn from_file<P: AsRef<Path>>(path: P, version: &str) -> Result<Config> {
         let path = path.as_ref();
         let content = read_file(path)?;
 
@@ -187,6 +190,7 @@ impl Config {
         // this is the step at which missing extra syntax and highlighting themes are raised as errors
         config.markdown.init_extra_syntaxes_and_highlight_themes(config_dir)?;
         config.markdown.validate_external_links_class()?;
+        config.version = version.to_string();
 
         Ok(config)
     }
@@ -423,6 +427,7 @@ impl Default for Config {
             generate_sitemap: true,
             generate_robots_txt: true,
             exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap::None,
+            version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
 }

@@ -78,10 +78,14 @@ pub struct Site {
 impl Site {
     /// Parse a site at the given path. Defaults to the current dir
     /// Passing in a path is used in tests and when --root argument is passed
-    pub fn new<P: AsRef<Path>, P2: AsRef<Path>>(path: P, config_file: P2) -> Result<Site> {
+    pub fn new<P: AsRef<Path>, P2: AsRef<Path>>(
+        path: P,
+        config_file: P2,
+        version: &str,
+    ) -> Result<Site> {
         let path = path.as_ref();
         let config_file = config_file.as_ref();
-        let mut config = get_config(&path.join(config_file))?;
+        let mut config = get_config(&path.join(config_file), version)?;
 
         if let Some(theme) = config.theme.clone() {
             // Grab data from the extra section of the theme

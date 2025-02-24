@@ -13,7 +13,7 @@ Hugo that I was using before for 6+ sites.
 
 # Fork information
 
-This is a custom fork of Zola, with some additional features and changes. The main goal of this fork is solely to fit my own specific needs for my [blog](https://blog.cstef.dev).
+This is a custom fork of Zola, with some additional features and changes. The main goal of this fork was to fit my own specific needs for my [blog](https://blog.cstef.dev), but then I figured they could be useful to others 😄.
 
 I have opened a few [pull requests](https://github.com/getzola/zola/pulls?q=is%3Apr+author%3Acestef) containing some of the changes I made
 to the upstream repository, but they have not all been merged yet. I will keep this fork up-to-date with the upstream repository, but I will not be actively maintaining it.

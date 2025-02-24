@@ -1,4 +1,4 @@
-use config::BoolWithPath;
+use config::{BoolWithPath, ImageFormat};
 use errors::{Context, Error};
 use std::sync::Arc;
 use std::{
@@ -9,6 +9,7 @@ use std::{
     sync::Mutex,
 };
 use twox_hash::XxHash64;
+use typst::layout::PagedDocument;
 
 use typst::{
     diag::{eco_format, FileError, FileResult, PackageError, PackageResult},
@@ -221,7 +222,13 @@ impl MathCompiler for TypstCompiler {
         Ok(())
     }
 
-    fn compile(&self, source: &str, mode: MathRenderMode, minify: &BoolWithPath) -> Result<String> {
+    fn compile(
+        &self,
+        source: &str,
+        mode: MathRenderMode,
+        format: ImageFormat,
+        minify: &BoolWithPath,
+    ) -> Result<String> {
         // Prepare source based on mode
         let source = match mode {
             MathRenderMode::Display => templates::display_math(&source, self.addon.as_deref()),
@@ -235,6 +242,7 @@ impl MathCompiler for TypstCompiler {
             source.hash(&mut hasher);
             mode.hash(&mut hasher);
             minify.hash(&mut hasher);
+            format.hash(&mut hasher);
             format!("{:x}", hasher.finish())
         };
 
@@ -252,48 +260,59 @@ impl MathCompiler for TypstCompiler {
             return Err(Error::msg(format!("{:?}", warnings)));
         }
 
-        let document = document.output.map_err(|diags| Error::msg(format!("{:?}", diags)))?;
+        let document: PagedDocument =
+            document.output.map_err(|diags| Error::msg(format!("{:?}", diags)))?;
         let page = document.pages.first().ok_or(Error::msg("No pages found"))?;
-        let image = typst_svg::svg(page);
+        let image = match format {
+            ImageFormat::Svg => {
+                let svg = typst_svg::svg(page);
 
-        // Minify if requested
-        let minified = match minify {
-            BoolWithPath::True(config) => {
-                let svgo = Svgo::default();
-                svgo.minify(&image, config.as_deref())
-                    .map_err(|e| Error::msg(format!("Failed to minify SVG: {}", e)))?
+                // Minify if requested
+                let minified = match minify {
+                    BoolWithPath::True(config) => {
+                        let svgo = Svgo::default();
+                        svgo.minify(&svg, config.as_deref())
+                            .map_err(|e| Error::msg(format!("Failed to minify SVG: {}", e)))?
+                    }
+                    BoolWithPath::False => svg,
+                };
+
+                // Get alignment (for inline mode)
+                let align = match mode {
+                    MathRenderMode::Inline => {
+                        let query =
+                            document.introspector.query_label(Label::construct("label".into()));
+                        Some(
+                            query
+                                .map(|it| {
+                                    let field = it.clone().field_by_name("value").unwrap();
+                                    if let typst::foundations::Value::Length(value) = field {
+                                        value.abs.to_pt()
+                                    } else {
+                                        0.0
+                                    }
+                                })
+                                .unwrap_or(0.0),
+                        )
+                    }
+                    MathRenderMode::Raw | MathRenderMode::Display => None,
+                };
+
+                format_svg(&minified, align, mode, self.styles.as_deref())
             }
-            BoolWithPath::False => image,
-        };
-
-        // Get alignment (for inline mode)
-        let align = match mode {
-            MathRenderMode::Inline => {
-                let query = document.introspector.query_label(Label::construct("label".into()));
-                Some(
-                    query
-                        .map(|it| {
-                            let field = it.clone().field_by_name("value").unwrap();
-                            if let typst::foundations::Value::Length(value) = field {
-                                value.abs.to_pt()
-                            } else {
-                                0.0
-                            }
-                        })
-                        .unwrap_or(0.0),
-                )
+            ImageFormat::Webp => {
+                let pixmap = typst_render::render(page, 300.0);
+                // TODO: svg2webp
+                String::new()
             }
-            MathRenderMode::Raw | MathRenderMode::Display => None,
         };
-
-        let formatted = format_svg(&minified, align, mode, self.styles.as_deref());
 
         // Cache and return
         if let Some(ref render_cache) = self.render_cache {
-            render_cache.insert(key, formatted.clone());
+            render_cache.insert(key, image.clone());
         }
 
-        Ok(formatted)
+        Ok(image)
     }
 }
 

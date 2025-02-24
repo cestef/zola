@@ -32,6 +32,14 @@ pub enum MathRenderingEngine {
     Katex,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum ImageFormat {
+    #[default]
+    Svg,
+    Webp,
+}
+
 struct BoolWithPathVisitor;
 
 impl<'de> de::Visitor<'de> for BoolWithPathVisitor {
@@ -98,6 +106,7 @@ pub struct MathRenderer {
     pub svgo: BoolWithPath,
     pub css: Option<String>,
     pub addon: Option<String>,
+    pub format: ImageFormat,
 }
 
 impl<'de> Deserialize<'de> for MathRenderer {
@@ -114,6 +123,8 @@ impl<'de> Deserialize<'de> for MathRenderer {
             svgo: BoolWithPath,
             css: Option<String>,
             addon: Option<String>,
+            #[serde(default)]
+            format: ImageFormat,
         }
 
         #[derive(Deserialize)]
@@ -130,14 +141,19 @@ impl<'de> Deserialize<'de> for MathRenderer {
 
         // Convert to MathRenderer
         match config {
-            MathRendererConfig::Engine(engine) => {
-                Ok(MathRenderer { engine, svgo: BoolWithPath::default(), css: None, addon: None })
-            }
+            MathRendererConfig::Engine(engine) => Ok(MathRenderer {
+                engine,
+                svgo: BoolWithPath::default(),
+                css: None,
+                addon: None,
+                format: ImageFormat::Svg,
+            }),
             MathRendererConfig::Full(helper) => Ok(MathRenderer {
                 engine: helper.engine,
                 svgo: helper.svgo,
                 css: helper.css,
                 addon: helper.addon,
+                format: helper.format,
             }),
         }
     }

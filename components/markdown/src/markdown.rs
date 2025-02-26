@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use crate::cache::GenericCache;
 use crate::callouts::ObsidianCalloutsHandler;
-use crate::emoji::TwemojiReplacer;
 use crate::markdown::cmark::CowStr;
 
 use crate::math::{
@@ -13,6 +12,7 @@ use crate::math::{
 };
 use config::{BoolWithPath, MathRenderingEngine};
 use errors::bail;
+use libs::gh_emoji::Replacer;
 use libs::once_cell::sync::Lazy;
 use libs::pulldown_cmark as cmark;
 use libs::pulldown_cmark_escape as cmark_escape;
@@ -36,7 +36,7 @@ use crate::shortcode::{Shortcode, SHORTCODE_PLACEHOLDER};
 const CONTINUE_READING: &str = "<span id=\"continue-reading\"></span>";
 const SUMMARY_CUTOFF_TEMPLATE: &str = "summary-cutoff.html";
 const ANCHOR_LINK_TEMPLATE: &str = "anchor-link.html";
-static EMOJI_REPLACER: Lazy<TwemojiReplacer> = Lazy::new(TwemojiReplacer::new);
+static EMOJI_REPLACER: Lazy<Replacer> = Lazy::new(Replacer::new);
 
 /// Set as a regex to help match some extra cases. This way, spaces and case don't matter.
 static MORE_DIVIDER_RE: Lazy<Regex> = Lazy::new(|| {

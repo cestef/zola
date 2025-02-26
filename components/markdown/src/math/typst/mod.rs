@@ -256,8 +256,8 @@ impl MathCompiler for TypstCompiler {
         let world = self.wrap_source(source);
         let document = typst::compile(&world);
         let warnings = document.warnings;
-
-        if !warnings.is_empty() {
+        let has_error = warnings.iter().any(|w| w.severity == typst::diag::Severity::Error);
+        if has_error {
             return Err(Error::msg(format!("{:?}", warnings)));
         }
 

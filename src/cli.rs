@@ -1,8 +1,7 @@
 use std::net::IpAddr;
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
-use clap_complete::Shell;
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[clap(version, author, about)]
@@ -117,6 +116,16 @@ pub enum Command {
     Completion {
         /// Shell to generate completion for
         #[clap(value_enum)]
-        shell: Shell,
+        shell: ShellExtended,
     },
+}
+
+#[derive(ValueEnum, Clone)]
+pub enum ShellExtended {
+    Bash,
+    Elvish,
+    Fish,
+    PowerShell,
+    Zsh,
+    Nushell,
 }

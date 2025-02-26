@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use clap_complete::Generator;
 use cli::{Cli, Command};
 use errors::anyhow;
 use utils::net::{get_available_port, port_is_available};
@@ -137,8 +138,18 @@ fn main() {
             }
         }
         Command::Completion { shell } => {
-            let cmd = &mut Cli::command();
-            clap_complete::generate(shell, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
+            let mut cmd = Cli::command();
+            let shell: Box<dyn Generator> = match shell {
+                cli::ShellExtended::Nushell => Box::new(clap_complete_nushell::Nushell),
+                cli::ShellExtended::Bash => Box::new(clap_complete::shells::Bash),
+                cli::ShellExtended::Elvish => Box::new(clap_complete::shells::Elvish),
+                cli::ShellExtended::Fish => Box::new(clap_complete::shells::Fish),
+                cli::ShellExtended::PowerShell => Box::new(clap_complete::shells::PowerShell),
+                cli::ShellExtended::Zsh => Box::new(clap_complete::shells::Zsh),
+            };
+            cmd.set_bin_name(cmd.get_name().to_string());
+            cmd.build();
+            shell.generate(&cmd, &mut std::io::stdout());
         }
     }
 }

@@ -302,9 +302,9 @@ impl MathCompiler for TypstCompiler {
                 format_svg(&minified, align, mode, self.styles.as_deref())
             }
             ImageFormat::Webp => {
-                let pixmap = typst_render::render(page, 300.0);
+                // let _pixmap = typst_render::render(page, 300.0);
                 // TODO: svg2webp
-                String::new()
+                unimplemented!("WebP is not supported yet")
             }
         };
 

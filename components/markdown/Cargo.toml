@@ -30,6 +30,7 @@ twox-hash = "2.1.0"
 dirs = "6.0.0"
 katex = { version = "0.4.6", default-features = false, features = ["duktape"] }
 ansi-to-html = "0.2.2"
+twemoji-assets = { version = "1.0", features = ["svg", "names"] }
 
 [dev-dependencies]
 templates = { path = "../templates" }

@@ -3143,6 +3143,7 @@ dependencies = [
  "templates",
  "time",
  "ttf-parser 0.25.1",
+ "twemoji-assets",
  "twox-hash",
  "typst",
  "typst-assets",
@@ -5646,6 +5647,12 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
+name = "twemoji-assets"
+version = "1.3.0+15.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d025c23299766dbecaea9047ddf23e51ab324a42d8b1662aaa3347ff58161c"
 
 [[package]]
 name = "two-face"

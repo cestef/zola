@@ -2,10 +2,10 @@ pub mod cache;
 pub mod callouts;
 pub mod codeblock;
 pub mod context;
+pub mod emoji;
 pub mod markdown;
 pub mod math;
 pub mod shortcode;
-
 use shortcode::{extract_shortcodes, insert_md_shortcodes};
 
 use errors::Result;

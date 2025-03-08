@@ -30,7 +30,14 @@ to the upstream repository, but they have not all been merged yet. I will keep t
 | Version variable in Tera context                                                | -                                                                                    | [@extua #2793](https://github.com/getzola/zola/pull/2793)                            | 🔄 In progress |
 | [Pikchr](https://pikchr.org) support for diagrams                               | [blog](https://github.com/cestef/zola/tree/blog)                                     | -                                                                                    | 🛑 Not opened  |
 
-<!-- - [ ] [Add support for math typesetting with Typst and KaTeX](https://github.com/getzola/zola/pull/2791) -->
+
+## Using this fork
+
+Pre-built binaries are available in the [releases](https://github.com/cestef/zola/releases) section of this repository. You can also install it from my [`brew`](https://brew.sh) tap:
+
+```sh
+brew install cestef/tap/zola
+```
 
 # List of features
 

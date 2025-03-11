@@ -1,4 +1,4 @@
-(function () {
+(() => {
 	// Configuration
 	const config = {
 		reconnectInterval: 1000,
@@ -59,7 +59,9 @@
 		};
 
 		elementScrollPositions = {};
-		document.querySelectorAll("[data-preserve-scroll]").forEach((element) => {
+		const scrollElements = document.querySelectorAll("[data-preserve-scroll]");
+		for (let i = 0; i < scrollElements.length; i++) {
+			const element = scrollElements[i];
 			const id = element.id || `zola-scroll-${Math.random().toString(36).slice(2, 9)}`;
 			if (!element.id) {
 				element.id = id;
@@ -71,7 +73,7 @@
 			};
 
 			log(`Saved scroll position for #${id}: ${element.scrollTop}, ${element.scrollLeft}`);
-		});
+		}
 
 		try {
 			sessionStorage.setItem(
@@ -114,7 +116,9 @@
 
 		setTimeout(() => {
 			if (elements) {
-				Object.keys(elements).forEach((id) => {
+				const ids = Object.keys(elements);
+				for (let i = 0; i < ids.length; i++) {
+					const id = ids[i];
 					const element = document.getElementById(id);
 					if (element) {
 						const pos = elements[id];
@@ -122,17 +126,18 @@
 						element.scrollLeft = pos.scrollLeft;
 						log(`Restored scroll for #${id}: ${pos.scrollTop}, ${pos.scrollLeft}`);
 					}
-				});
+				}
 			}
 
-			s;
-			document.querySelectorAll("[data-preserve-scroll]").forEach((element) => {
+			const scrollElements = document.querySelectorAll("[data-preserve-scroll]");
+			for (let i = 0; i < scrollElements.length; i++) {
+				const element = scrollElements[i];
 				if (!element.id) {
 					const id = `zola-scroll-${Math.random().toString(36).substr(2, 9)}`;
 					element.id = id;
 					log(`Assigned new ID to scrollable element: ${id}`);
 				}
-			});
+			}
 		}, 100); // FIXME: This timeout is a hack to ensure DOM is fully loaded
 	};
 
@@ -146,7 +151,8 @@
 			let refreshed = false;
 
 			// try for specific match first
-			links.forEach((link) => {
+			for (let i = 0; i < links.length; i++) {
+				const link = links[i];
 				const href = link.getAttribute("href");
 				if (href && (href.includes(path) || path.includes(href))) {
 					const newHref = href.includes("?")
@@ -157,11 +163,12 @@
 					refreshed = true;
 					log(`Updated specific CSS: ${href} -> ${newHref}`);
 				}
-			});
+			}
 
 			// otherwise refresh all CSS
 			if (!refreshed) {
-				links.forEach((link) => {
+				for (let i = 0; i < links.length; i++) {
+					const link = links[i];
 					const href = link.getAttribute("href");
 					if (href) {
 						const newHref = href.includes("?")
@@ -171,7 +178,7 @@
 						link.setAttribute("href", newHref);
 						log(`Updated CSS: ${href} -> ${newHref}`);
 					}
-				});
+				}
 			}
 		}, config.cssReloadTimeout);
 	};
@@ -182,7 +189,8 @@
 		const images = document.querySelectorAll("img");
 		let refreshed = false;
 
-		images.forEach((img) => {
+		for (let i = 0; i < images.length; i++) {
+			const img = images[i];
 			const src = img.getAttribute("src");
 			if (src && (src.includes(path) || path.includes(src))) {
 				const newSrc = src.includes("?")
@@ -193,7 +201,7 @@
 				refreshed = true;
 				log(`Updated specific image: ${src} -> ${newSrc}`);
 			}
-		});
+		}
 
 		return refreshed;
 	};

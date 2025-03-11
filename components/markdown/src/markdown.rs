@@ -646,11 +646,15 @@ pub fn markdown_to_html(
                         }
                         _ => false,
                     };
+                    let inner = match fence.include(context.parent_absolute.as_ref()) {
+                        Ok(i) => i.unwrap_or_default(),
+                        Err(e) => {
+                            error = Some(e);
+                            break;
+                        }
+                    };
                     if should_render {
                         if let Some(ref compiler) = compiler {
-                            let inner = fence
-                                .include(context.parent_absolute.as_ref())
-                                .unwrap_or(accumulated_block.clone());
                             let rendered = compiler.compile(
                                 &inner,
                                 MathRenderMode::Raw,
@@ -676,6 +680,10 @@ pub fn markdown_to_html(
                             }
                         };
                         code_block = Some(block);
+                        if !inner.is_empty() {
+                            accumulated_block =
+                                if !inner.ends_with('\n') { format!("{}\n", inner) } else { inner };
+                        }
                         events.push(Event::Html(begin.into()));
                     }
                 }

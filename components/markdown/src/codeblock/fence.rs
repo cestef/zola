@@ -1,5 +1,5 @@
+use crate::Result;
 use std::{ops::RangeInclusive, path::PathBuf};
-
 use utils::fs::read_file;
 
 fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
@@ -60,11 +60,18 @@ impl<'a> FenceSettings<'a> {
         me
     }
 
-    pub fn include(&self, base: Option<&PathBuf>) -> Option<String> {
-        let path = base?.join(self.include.as_ref()?);
-        let res = read_file(&path);
-
-        res.ok()
+    pub fn include(&self, base: Option<&PathBuf>) -> Result<Option<String>> {
+        if let Some(base) = base {
+            if let Some(include) = &self.include {
+                let path = base.join(include);
+                let content = read_file(&path)?;
+                return Ok(Some(content));
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 

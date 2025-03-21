@@ -29,6 +29,7 @@ pub struct FenceSettings<'a> {
     pub name: Option<&'a str>,
     pub enable_copy: bool,
     pub include: Option<&'a str>,
+    pub center: bool,
 }
 
 impl<'a> FenceSettings<'a> {
@@ -42,6 +43,7 @@ impl<'a> FenceSettings<'a> {
             name: None,
             enable_copy: false,
             include: None,
+            center: false,
         };
 
         for token in FenceIter::new(fence_info) {
@@ -54,6 +56,7 @@ impl<'a> FenceSettings<'a> {
                 FenceToken::Name(n) => me.name = Some(n),
                 FenceToken::EnableCopy => me.enable_copy = true,
                 FenceToken::Include(file) => me.include = Some(file),
+                FenceToken::Center => me.center = true,
             }
         }
 
@@ -85,6 +88,7 @@ enum FenceToken<'a> {
     Name(&'a str),
     EnableCopy,
     Include(&'a str),
+    Center,
 }
 
 struct FenceIter<'a> {
@@ -142,6 +146,7 @@ impl<'a> Iterator for FenceIter<'a> {
                         return Some(FenceToken::Include(file));
                     }
                 }
+                "center" => return Some(FenceToken::Center),
                 lang => {
                     if tok_split.next().is_some() {
                         eprintln!("Warning: Unknown annotation {}", lang);

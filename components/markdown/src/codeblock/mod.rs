@@ -19,6 +19,7 @@ fn opening_html(
     pre_class: Option<String>,
     line_numbers: bool,
     enable_copy: bool,
+    center: bool,
 ) -> String {
     let mut html = String::from("<pre");
     if line_numbers {
@@ -27,6 +28,11 @@ fn opening_html(
     if enable_copy {
         html.push_str(" data-copy");
     }
+
+    if center {
+        html.push_str(" data-center");
+    }
+
     let mut classes = String::new();
 
     if let Some(lang) = language {
@@ -125,6 +131,7 @@ impl<'config> CodeBlock<'config> {
             highlighter.pre_class(),
             fence.line_numbers,
             fence.enable_copy,
+            fence.center,
         );
         Ok((
             Self {

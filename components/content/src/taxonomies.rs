@@ -234,6 +234,7 @@ impl Taxonomy {
         context.insert("taxonomy", &self.kind);
         context.insert("current_url", &self.permalink);
         context.insert("current_path", &self.path);
+        context.insert("version", &config.version);
 
         // Check for taxon-specific template, or use generic as fallback.
         let specific_template = format!("{}/list.html", self.kind.name);

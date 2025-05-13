@@ -1,0 +1,2 @@
+- name: Configure git to ignore case
+  run: git config core.protectNTFS false; git config hooks.enforcecompatiblefilenames false

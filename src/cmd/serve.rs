@@ -502,7 +502,7 @@ pub fn serve(
         };
         if should_watch {
             debouncer
-                .watch(&root_dir.join(entry), recursive_mode)
+                .watch(root_dir.join(entry), recursive_mode)
                 .with_context(|| format!("Can't watch `{}` for changes in folder `{}`. Does it exist, and do you have correct permissions?", entry, root_dir.display()))?;
             watchers.push(entry.to_string());
         }

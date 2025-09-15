@@ -339,7 +339,7 @@ impl Config {
         }
     }
 
-    pub fn serialize(&self, lang: &str) -> SerializedConfig {
+    pub fn serialize(&self, lang: &str) -> SerializedConfig<'_> {
         let options = &self.languages[lang];
 
         SerializedConfig {

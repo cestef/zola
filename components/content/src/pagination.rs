@@ -246,6 +246,7 @@ impl<'a> Paginator<'a> {
         context.insert("current_path", &pager.path);
         context.insert("paginator", &self.build_paginator_context(pager));
         context.insert("version", &config.version);
+        context.insert("git", &config.git);
 
         render_template(&self.template, tera, context, &config.theme)
             .with_context(|| format!("Failed to render pager {}", pager.index))

@@ -263,9 +263,7 @@ impl Page {
         context.insert("page", &self.serialize(library));
         context.insert("lang", &self.lang);
         context.insert("version", &config.version);
-
-        let info = utils::git::git_info();
-        context.insert("git", &info);
+        context.insert("git", &config.git);
 
         render_template(tpl_name, tera, context, &config.theme)
             .with_context(|| format!("Failed to render page '{}'", self.file.path.display()))

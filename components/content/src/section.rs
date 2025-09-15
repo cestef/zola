@@ -202,6 +202,7 @@ impl Section {
         context.insert("section", &SerializingSection::new(self, SectionSerMode::Full(library)));
         context.insert("lang", &self.lang);
         context.insert("version", &config.version);
+        context.insert("git", &config.git);
 
         render_template(tpl_name, tera, context, &config.theme)
             .with_context(|| format!("Failed to render section '{}'", self.file.path.display()))

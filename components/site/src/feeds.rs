@@ -73,6 +73,8 @@ pub fn render_feeds(
     context.insert("config", &site.config.serialize(lang));
     context.insert("lang", lang);
     context.insert("version", &site.config.version);
+    context.insert("git", &site.config.git);
+
     let mut feeds = Vec::new();
     for feed_filename in &site.config.languages[lang].feed_filenames {
         let mut context = context.clone();

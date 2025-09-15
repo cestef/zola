@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use libs::globset::GlobSet;
 use libs::toml::Value as Toml;
 use serde::{Deserialize, Serialize};
+use utils::git::GitInfo;
 
 use crate::theme::Theme;
 use errors::{anyhow, bail, Result};
@@ -114,6 +115,7 @@ pub struct Config {
 
     // The following fields are not in the config file but are set by Zola
     pub version: String,
+    pub git: GitInfo,
 }
 
 #[derive(Serialize)]
@@ -191,6 +193,7 @@ impl Config {
         config.markdown.init_extra_syntaxes_and_highlight_themes(config_dir)?;
         config.markdown.validate_external_links_class()?;
         config.version = version.to_string();
+        config.git = utils::git::git_info();
 
         Ok(config)
     }
@@ -428,6 +431,7 @@ impl Default for Config {
             generate_robots_txt: true,
             exclude_paginated_pages_in_sitemap: ExcludePaginatedPagesInSitemap::None,
             version: env!("CARGO_PKG_VERSION").to_string(),
+            git: utils::git::git_info(),
         }
     }
 }

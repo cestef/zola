@@ -75,6 +75,7 @@ pub struct TypstCompiler {
     fonts: Vec<Font>,
     packages_cache_path: PathBuf,
     files: Mutex<HashMap<FileId, TypstFile>>,
+    packages: Mutex<HashMap<String, PathBuf>>,
     render_cache: Option<Arc<MathCache>>,
     addon: Option<String>,
     styles: Option<String>,
@@ -96,6 +97,7 @@ impl TypstCompiler {
                 .unwrap_or(CACHE_DIR.to_path_buf())
                 .join("packages"),
             files: Mutex::new(HashMap::new()),
+            packages: Mutex::new(HashMap::new()),
             render_cache: None,
             addon,
             styles,
@@ -112,10 +114,29 @@ impl TypstCompiler {
 
     /// Get the package directory or download if not exists
     fn package(&self, package: &PackageSpec) -> PackageResult<PathBuf> {
-        let package_subdir = format!("{}/{}/{}", package.namespace, package.name, package.version);
-        let path = self.packages_cache_path.join(package_subdir);
+        let package_key = format!("{}/{}/{}", package.namespace, package.name, package.version);
 
+        // First, check if we already have the package cached in memory
+        {
+            let packages = self.packages.lock().unwrap();
+            if let Some(path) = packages.get(&package_key) {
+                return Ok(path.clone());
+            }
+        }
+
+        // Now lock the packages mutex to ensure only one thread downloads this package
+        let mut packages = self.packages.lock().unwrap();
+
+        // Double-check: another thread might have downloaded it while we were waiting for the lock
+        if let Some(path) = packages.get(&package_key) {
+            return Ok(path.clone());
+        }
+
+        let path = self.packages_cache_path.join(&package_key);
+
+        // Check if the package exists on disk (might have been downloaded in a previous run)
         if path.exists() {
+            packages.insert(package_key, path.clone());
             return Ok(path);
         }
 
@@ -176,6 +197,8 @@ impl TypstCompiler {
             )))
         })?;
 
+        // Cache the successful download
+        packages.insert(package_key, path.clone());
         Ok(path)
     }
 

@@ -1,8 +1,9 @@
 use config::{BoolWithPath, ImageFormat};
 use errors::{Context, Error};
+use libs::once_cell::sync::Lazy;
 use std::sync::Arc;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
     io::Write,
     path::PathBuf,
@@ -29,6 +30,12 @@ use super::svgo::Svgo;
 use super::{MathCache, MathCompiler, MathRenderMode};
 use crate::context::CACHE_DIR;
 use crate::Result;
+
+/// Process-wide cache of fully-downloaded package directories.
+/// Each page gets its own TypstCompiler instance, but pages render in parallel via rayon.
+/// Without a shared cache, multiple instances race to download and extract the same package
+/// to the same directory, causing corrupted extractions.
+static PACKAGE_CACHE: Lazy<Mutex<HashSet<PathBuf>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 fn fonts() -> Vec<Font> {
     typst_assets::fonts()
@@ -75,7 +82,6 @@ pub struct TypstCompiler {
     fonts: Vec<Font>,
     packages_cache_path: PathBuf,
     files: Mutex<HashMap<FileId, TypstFile>>,
-    packages: Mutex<HashMap<String, PathBuf>>,
     render_cache: Option<Arc<MathCache>>,
     addon: Option<String>,
     styles: Option<String>,
@@ -97,7 +103,6 @@ impl TypstCompiler {
                 .unwrap_or(CACHE_DIR.to_path_buf())
                 .join("packages"),
             files: Mutex::new(HashMap::new()),
-            packages: Mutex::new(HashMap::new()),
             render_cache: None,
             addon,
             styles,
@@ -112,32 +117,43 @@ impl TypstCompiler {
         }
     }
 
-    /// Get the package directory or download if not exists
+    /// Get the package directory or download if not exists.
+    /// Uses a process-wide static cache since each page gets its own TypstCompiler
+    /// but pages render in parallel via rayon — without shared coordination, multiple
+    /// instances would race to extract the same package to the same directory.
     fn package(&self, package: &PackageSpec) -> PackageResult<PathBuf> {
-        let package_key = format!("{}/{}/{}", package.namespace, package.name, package.version);
+        let path = self
+            .packages_cache_path
+            .join(format!("{}/{}/{}", package.namespace, package.name, package.version));
 
-        // First, check if we already have the package cached in memory
+        // Fast path: already downloaded in this process
         {
-            let packages = self.packages.lock().unwrap();
-            if let Some(path) = packages.get(&package_key) {
-                return Ok(path.clone());
+            let cache = PACKAGE_CACHE.lock().unwrap();
+            if cache.contains(&path) {
+                return Ok(path);
             }
         }
 
-        // Now lock the packages mutex to ensure only one thread downloads this package
-        let mut packages = self.packages.lock().unwrap();
+        // Slow path: acquire process-wide lock to coordinate downloads
+        let mut cache = PACKAGE_CACHE.lock().unwrap();
 
-        // Double-check: another thread might have downloaded it while we were waiting for the lock
-        if let Some(path) = packages.get(&package_key) {
-            return Ok(path.clone());
+        // Double-check: another thread may have downloaded it while we waited
+        if cache.contains(&path) {
+            return Ok(path);
         }
 
-        let path = self.packages_cache_path.join(&package_key);
+        let complete_marker = path.join(".complete");
 
-        // Check if the package exists on disk (might have been downloaded in a previous run)
-        if path.exists() {
-            packages.insert(package_key, path.clone());
+        // Check if the package was fully extracted on disk (e.g. from a previous build).
+        // Packages without the sentinel are leftovers from a failed extraction.
+        if complete_marker.exists() {
+            cache.insert(path.clone());
             return Ok(path);
+        }
+
+        // Clean up any incomplete extraction from a previous failed attempt
+        if path.exists() {
+            let _ = std::fs::remove_dir_all(&path);
         }
 
         // Download the package
@@ -187,9 +203,22 @@ impl TypstCompiler {
             )))
         })?;
 
+        // Extract to a temporary directory first, then atomically rename into place.
+        // This prevents partially-extracted packages from being treated as valid on disk
+        // if the process is interrupted or a subsequent retry reuses the same cache.
+        let tmp_path = {
+            let mut p = path.as_os_str().to_owned();
+            p.push(".partial");
+            PathBuf::from(p)
+        };
+
+        if tmp_path.exists() {
+            let _ = std::fs::remove_dir_all(&tmp_path);
+        }
+
         let mut archive = tar::Archive::new(decompressed.as_slice());
-        archive.unpack(&path).map_err(|e| {
-            std::fs::remove_dir_all(&path).ok();
+        archive.unpack(&tmp_path).map_err(|e| {
+            let _ = std::fs::remove_dir_all(&tmp_path);
             PackageError::MalformedArchive(Some(eco_format!(
                 "Failed to unpack package {}: {}",
                 package.name,
@@ -197,8 +226,20 @@ impl TypstCompiler {
             )))
         })?;
 
-        // Cache the successful download
-        packages.insert(package_key, path.clone());
+        // Move the fully-extracted package to its final location
+        std::fs::rename(&tmp_path, &path).map_err(|e| {
+            let _ = std::fs::remove_dir_all(&tmp_path);
+            PackageError::Other(Some(eco_format!(
+                "Failed to install package {}: {}",
+                package.name,
+                e
+            )))
+        })?;
+
+        // Write sentinel to mark this package as completely extracted
+        let _ = std::fs::write(&complete_marker, []);
+
+        cache.insert(path.clone());
         Ok(path)
     }
 
